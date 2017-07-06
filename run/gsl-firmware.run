@@ -1,0 +1,10 @@
+
+set build_components {
+    drivers/input/touch/silead_mssl1680
+}
+
+build $build_components
+
+set firmware_modules {
+}
+

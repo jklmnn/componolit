@@ -1,0 +1,7 @@
+LICENSE     := GPLv2
+VERSION     := 0a4c6219a3189fa3fee02c9683f2d4129c0dd6ff
+DOWNLOADS   := gsl_firmware.git
+
+URL(gsl_firmware)   := https://github.com/onitake/gsl-firmware.git
+REV(gsl_firmware)   := 0a4c6219a3189fa3fee02c9683f2d4129c0dd6ff
+DIR(gsl_firmware)   := gsl 
