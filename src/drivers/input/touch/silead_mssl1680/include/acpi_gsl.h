@@ -8,7 +8,6 @@
 #include <util/reconstructible.h>
 #include <util/string.h>
 #include <acpica/acpica.h>
-#include <timer_session/connection.h>
 
 extern "C" {
 #include "acpi.h"

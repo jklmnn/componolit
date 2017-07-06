@@ -203,7 +203,8 @@ void Acpi::initialize_driver(Genode::addr_t base, Genode::uint32_t length,
         (void*)this,
         &Acpi::enable_mssl1680,
         i2c_slv_adr,
-        mssl_irq);
+        mssl_irq,
+        gpio_irq);
 }
 
 void Acpi::irq_handler()

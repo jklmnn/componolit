@@ -126,7 +126,7 @@ append_if [need_usb_hid] config {
 	</start> }
 
 append config {
-    <start name="silead_ts">
+    <start name="silead_ts" caps="10000">
         <resource name="RAM" quantum="4M"/>
         <config>
             <firmware name="trekstor_surftab7new_silead_ts.fw"/>

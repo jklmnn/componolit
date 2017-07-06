@@ -6,6 +6,7 @@
 #include <base/attached_rom_dataspace.h>
 #include <util/fifo.h>
 #include <util/reconstructible.h>
+#include <timer_session/connection.h>
 
 #include <i2c_designware.h>
 
@@ -37,6 +38,7 @@ namespace GSL{
             MODEL = 0x30383631,
             VERSION = 1
         };
+        class InvalidFirmware : Genode::Exception { };
     };
     class X680;
     class Messages;
@@ -47,12 +49,6 @@ class GSL::Messages {
 private:
 
 public:
-    Messages(Genode::uint16_t _addr){
-        m_startup.addr = _addr;
-        m_reset_1.addr = _addr;
-        m_reset_2.addr = _addr;
-        m_reset_3.addr = _addr;
-    }
     Genode::uint8_t data[11] = {
         0xe0, 0x00,
         0xe0, 0x88,
@@ -60,44 +56,54 @@ public:
         0xbc, 0x00, 0x00, 0x00, 0x00
     };
 
-    Genode::uint8_t test_data[100];
-
-    DW::Message m_startup {0, 0, 2, &data[0]};
-    DW::Message m_reset_1 {0, 0, 2, &data[2]};
-    DW::Message m_reset_2 {0, 0, 2, &data[4]};
-    DW::Message m_reset_3 {0, 0, 5, &data[6]};
-    DW::Message m_test {0x40, 0, 40, test_data};
+    DW::Message m_startup;
+    DW::Message m_reset_1;
+    DW::Message m_reset_2;
+    DW::Message m_reset_3;
 
     Genode::Fifo_element<DW::Message> startup { &m_startup };
     Genode::Fifo_element<DW::Message> reset_1 { &m_reset_1 };
     Genode::Fifo_element<DW::Message> reset_2 { &m_reset_2 };
     Genode::Fifo_element<DW::Message> reset_3 { &m_reset_3 };
-    Genode::Fifo_element<DW::Message> test { &m_test };
-
+    
+    Messages(Genode::uint16_t _addr) :
+        m_startup (_addr, 0, 2, &data[0]),
+        m_reset_1 (_addr, 0, 2, &data[2]),
+        m_reset_2 (_addr, 0, 2, &data[4]),
+        m_reset_3 (_addr, 0, 5, &data[6])
+    { }
 };
 
 
 class GSL::X680 {
 
 private:
-
     Genode::Attached_rom_dataspace config;
     Genode::Attached_rom_dataspace firmware;
     Genode::uint16_t _addr;
     Genode::Irq_connection _irq;
     Genode::Constructible<Genode::Signal_handler<GSL::X680>> _sigh;
+    Genode::Irq_connection _gpio_irq;
+    Genode::Constructible<Genode::Signal_handler<GSL::X680>> _gpio_sigh;
+    Timer::Connection _timer;
     DW::I2C *i2c;
+    GSL::Messages msgs;
+    GSL::FW::header *fw_header;
+    GSL::FW::page *fw_page;
     void setup();
     void *acpi;
     void enable(bool);
     int (*enable_acpi)(void*, bool);
-    GSL::Messages msgs;
+    void flash_firmware();
 
 public:
-    X680(DW::I2C*, Genode::Env&, void*, int(*)(void*, bool), Genode::uint16_t, Genode::uint32_t);
+    X680(DW::I2C*, Genode::Env&, void*, int(*)(void*, bool), Genode::uint16_t, Genode::uint32_t, Genode::uint32_t);
     DW::I2C *driver();
     inline void handle_irq(){
         Genode::log("GSLX IRQ");
         _irq.ack_irq();
+    }
+    inline void handle_gpio(){
+        Genode::log("GPIO IRQ");
     }
 };
