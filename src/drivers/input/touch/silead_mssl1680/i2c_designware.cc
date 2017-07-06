@@ -187,7 +187,7 @@ void I2C::_tx()
             DATA_CMD::access_t d = DATA_CMD::stopping_write(0, byte, (msg.len - msg.status == 1));
             write<DATA_CMD>(d);
         }
-        message_queue.dequeue();
+        message_queue.dequeue()->object()->dump();
         write<INTR_MASK>(0x244);
     }
     write<IC_ENABLE>(0);

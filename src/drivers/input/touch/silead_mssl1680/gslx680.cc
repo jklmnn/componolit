@@ -4,6 +4,7 @@
 using namespace GSL;
 
 X680::X680(DW::I2C *_i2c, Genode::Env &env, void *_acpi, int(*_enable_acpi)(void*, bool), Genode::uint16_t addr, Genode::uint32_t irq, Genode::uint32_t gpio_irq) :
+    fw_heap(&env.ram(), &env.rm()),
     config(env, "config"),
     firmware(env, config.xml().sub_node("firmware").attribute_value("name", Genode::String<128>()).string()),
     _addr(addr),
@@ -41,20 +42,19 @@ X680::X680(DW::I2C *_i2c, Genode::Env &env, void *_acpi, int(*_enable_acpi)(void
 
 void X680::setup()
 {
-    _timer.usleep(50000);
-
+    _irq.ack_irq();
+    Genode::log("Setting up device");
+    Genode::log("Resetting device");
     i2c->send(&msgs.reset_1);
-    _timer.usleep(20000);
     i2c->send(&msgs.reset_2);
-    _timer.usleep(20000);
     i2c->send(&msgs.reset_3);
-    _timer.usleep(20000);
     
-    //flash_firmware();
+    flash_firmware();
     
+    Genode::log("Starting device");
     i2c->send(&msgs.startup);
-    _timer.usleep(20000);
     Genode::log("Touch device ready.");
+    is_initialized = true;
 }
 
 void X680::flash_firmware()
@@ -65,19 +65,14 @@ void X680::flash_firmware()
         Genode::uint8_t p_buf[5];
         p_buf[0] = 0xf0;
         Genode::memcpy(&p_buf[1], (Genode::uint8_t*)&(fw_page[i].address), 4);
-        DW::Message page {_addr, 0x0, 5, p_buf};
-        Genode::Fifo_element<DW::Message> page_msg { &page };
-        i2c->send(&page_msg);
+        DW::Message *page = new (fw_heap) DW::Message(_addr, 0x0, 5, p_buf);
+        i2c->send(new (fw_heap) Genode::Fifo_element<DW::Message>(page));
         
         Genode::uint8_t d_buf[fw_page[i].size + 1];
         d_buf[0] = 0;
         Genode::memcpy(&d_buf[1], fw_page[i].data, fw_page[i].size);
-        DW::Message data {_addr, 0x0, (Genode::uint16_t)(fw_page[i].size + 1), d_buf};
-        Genode::Fifo_element<DW::Message> data_msg { &data };
-        i2c->send(&data_msg);
-        
-        while(page.len - page.status || data.len - data.status)
-            _timer.usleep(1000);
+        DW::Message *data  = new (fw_heap) DW::Message(_addr, 0x0, (Genode::uint16_t)(fw_page[i].size + 1), d_buf);
+        i2c->send(new (fw_heap) Genode::Fifo_element<DW::Message>(data));
     }
 }       
 

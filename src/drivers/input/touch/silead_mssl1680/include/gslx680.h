@@ -2,6 +2,7 @@
 #pragma once
 
 #include <irq_session/connection.h>
+#include <base/heap.h>
 #include <base/signal.h>
 #include <base/attached_rom_dataspace.h>
 #include <util/fifo.h>
@@ -78,6 +79,7 @@ public:
 class GSL::X680 {
 
 private:
+    Genode::Heap fw_heap;
     Genode::Attached_rom_dataspace config;
     Genode::Attached_rom_dataspace firmware;
     Genode::uint16_t _addr;
@@ -86,10 +88,12 @@ private:
     Genode::Irq_connection _gpio_irq;
     Genode::Constructible<Genode::Signal_handler<GSL::X680>> _gpio_sigh;
     Timer::Connection _timer;
+    
     DW::I2C *i2c;
     GSL::Messages msgs;
     GSL::FW::header *fw_header;
     GSL::FW::page *fw_page;
+    bool is_initialized = false;
     void setup();
     void *acpi;
     void enable(bool);
@@ -101,7 +105,10 @@ public:
     DW::I2C *driver();
     inline void handle_irq(){
         Genode::log("GSLX IRQ");
+        if(!is_initialized)
+            setup();
         _irq.ack_irq();
+        Genode::log("finished GSLX IRQ");
     }
     inline void handle_gpio(){
         Genode::log("GPIO IRQ");
