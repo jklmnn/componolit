@@ -10,8 +10,7 @@ struct Main {
     GSL::Acpi acpi { env };
 
     Main(Genode::Env &env) : env(env)
-    {
-    }
+    { }
 };
 
 void Component::construct(Genode::Env &env){

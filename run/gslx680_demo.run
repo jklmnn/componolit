@@ -128,6 +128,9 @@ append_if [need_usb_hid] config {
 append config {
     <start name="silead_ts">
         <resource name="RAM" quantum="4M"/>
+        <config>
+            <firmware name="trekstor_surftab7new_silead_ts.fw"/>
+        </config>
     </start>
     <start name="acpi_state">
         <binary name="report_rom"/>
@@ -313,6 +316,13 @@ set boot_modules {
         silead_ts
         fb_multiboot2 dummy_input_drv
 }
+
+#firmware
+
+append boot_modules {
+    trekstor_surftab7new_silead_ts.fw
+}
+
 
 # platform-specific modules
 lappend_if [have_spec linux]       boot_modules fb_sdl

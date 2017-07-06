@@ -3,6 +3,7 @@
 
 #include <irq_session/connection.h>
 #include <base/signal.h>
+#include <base/attached_rom_dataspace.h>
 #include <util/fifo.h>
 #include <util/reconstructible.h>
 
@@ -79,11 +80,14 @@ public:
 class GSL::X680 {
 
 private:
-    void setup();
+
+    Genode::Attached_rom_dataspace config;
+    Genode::Attached_rom_dataspace firmware;
     Genode::uint16_t _addr;
     Genode::Irq_connection _irq;
     Genode::Constructible<Genode::Signal_handler<GSL::X680>> _sigh;
     DW::I2C *i2c;
+    void setup();
     void *acpi;
     void enable(bool);
     int (*enable_acpi)(void*, bool);
