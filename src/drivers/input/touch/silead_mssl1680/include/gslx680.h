@@ -10,6 +10,8 @@
 #include <timer_session/connection.h>
 
 #include <i2c_designware.h>
+#include <acpi_gsl.h>
+#include <gpio_gsl.h>
 
 namespace GSL{
     enum {
@@ -82,35 +84,29 @@ private:
     Genode::Heap fw_heap;
     Genode::Attached_rom_dataspace config;
     Genode::Attached_rom_dataspace firmware;
-    Genode::uint16_t _addr;
     Genode::Irq_connection _irq;
     Genode::Constructible<Genode::Signal_handler<GSL::X680>> _sigh;
-    Genode::Irq_connection _gpio_irq;
-    Genode::Constructible<Genode::Signal_handler<GSL::X680>> _gpio_sigh;
     Timer::Connection _timer;
-    
-    DW::I2C *i2c;
+   
+    struct GSL::gslx_desc *_desc;
+    DW::I2C *_i2c;
+    GSL::Acpi *_acpi;
+    GSL::GPIO::Pin *_pin;
     GSL::Messages msgs;
     GSL::FW::header *fw_header;
     GSL::FW::page *fw_page;
     bool is_initialized = false;
     void setup();
-    void *acpi;
     void enable(bool);
-    int (*enable_acpi)(void*, bool);
     void flash_firmware();
 
 public:
-    X680(DW::I2C*, Genode::Env&, void*, int(*)(void*, bool), Genode::uint16_t, Genode::uint32_t, Genode::uint32_t);
-    DW::I2C *driver();
+    X680(Genode::Env&, DW::I2C*, GSL::Acpi*, GSL::GPIO::Pin*, struct GSL::gslx_desc*);
     inline void handle_irq(){
         Genode::log("GSLX IRQ");
         if(!is_initialized)
             setup();
         _irq.ack_irq();
         Genode::log("finished GSLX IRQ");
-    }
-    inline void handle_gpio(){
-        Genode::log("GPIO IRQ");
     }
 };

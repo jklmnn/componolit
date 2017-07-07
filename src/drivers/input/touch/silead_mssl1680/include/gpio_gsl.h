@@ -2,7 +2,10 @@
 #pragma once
 
 #include <base/log.h>
+#include <base/attached_io_mem_dataspace.h>
 #include <util/mmio.h>
+
+#include <acpi_gsl.h>
 
 namespace GSL {
     namespace GPIO{
@@ -21,7 +24,7 @@ namespace GSL {
     };
 };
 
-class GSL::GPIO::Pin : Genode::Mmio
+class GSL::GPIO::Pin : Genode::Attached_io_mem_dataspace, Genode::Mmio
 {
     struct CON  : Register<0x0, 32>{
         struct PIN_MUX      : Bitfield< 0,  3> {};
@@ -72,11 +75,7 @@ class GSL::GPIO::Pin : Genode::Mmio
     };
     struct RVD  : Register<0xc, 32>{};
 
-private:
-    Genode::addr_t address;
-    Genode::uint16_t pin;
-    Genode::uint16_t offset;
 public:
-    Pin(Genode::addr_t, Genode::uint16_t);
+    Pin(Genode::Env &, struct GSL::gpio_desc*);
     void set(bool);
 };

@@ -113,22 +113,19 @@ ACPI_STATUS Acpi::load_resources(ACPI_HANDLE gsl)
 {
     Genode::log("Loading resources");
     ACPI_BUFFER buffer;
-    ACPI_HANDLE i2c, gpio_h;
+    ACPI_HANDLE i2c_h, gpio_h;
     buffer.Length = ACPI_ALLOCATE_BUFFER;
-    Genode::addr_t base, gpio_addr = 0;
-    Genode::uint16_t i2c_slv_adr, gpio_pin = 0;
-    Genode::uint32_t length, i2c_irq, mssl_irq, gpio_length = 0, gpio_irq = 0;
 
     ACPI_STATUS status = AcpiEvaluateObject(gsl, (ACPI_STRING)"_CRS", nullptr, &buffer);
     if(status == AE_OK){
         GSL::Resource::I2C_serial_bus res_i2c(buffer.Pointer, buffer.Length);
         GSL::Resource::Extended_Interrupt res_irq(buffer.Pointer, buffer.Length);
-        i2c_slv_adr = res_i2c.address();
-        mssl_irq = res_irq.irq();
+        gslx.slv_addr = res_i2c.address();
+        gslx.irq = res_irq.irq();
         GSL::Resource::Gpio_connection gpcon(buffer.Pointer, buffer.Length);
-        gpio_pin = gpcon.pin(0);
+        gpio.pin = gpcon.pin(0);
 
-        status = AcpiGetHandle(NULL, res_i2c.resource_source(), &i2c);
+        status = AcpiGetHandle(NULL, res_i2c.resource_source(), &i2c_h);
 
         if(AE_OK == AcpiGetHandle(NULL, gpcon.resource_source(), &gpio_h)){
             AcpiOsFree(buffer.Pointer);
@@ -136,10 +133,10 @@ ACPI_STATUS Acpi::load_resources(ACPI_HANDLE gsl)
             if(AE_OK == AcpiEvaluateObject(gpio_h, (ACPI_STRING)"_CRS", nullptr, &buffer)){
                 try{
                     GSL::Resource::Fixed_mem_range_32 gpio_mem(buffer.Pointer, buffer.Length);
-                    gpio_addr = gpio_mem.address();
-                    gpio_length = gpio_mem.length();
+                    gpio.base = gpio_mem.address();
+                    gpio.length = gpio_mem.length();
                     GSL::Resource::Extended_Interrupt gpio_intr(buffer.Pointer, buffer.Length);
-                    gpio_irq = gpio_intr.irq();
+                    gpio.irq = gpio_intr.irq();
                 }catch (Resource::ResourceNotFound&) {}
             }
         }
@@ -147,24 +144,25 @@ ACPI_STATUS Acpi::load_resources(ACPI_HANDLE gsl)
         AcpiOsFree(buffer.Pointer);
         if(status == AE_OK){
             buffer.Length = ACPI_ALLOCATE_BUFFER;
-            status = AcpiEvaluateObject(i2c, (ACPI_STRING)"_CRS", nullptr, &buffer);
+            status = AcpiEvaluateObject(i2c_h, (ACPI_STRING)"_CRS", nullptr, &buffer);
             if(status == AE_OK){
                 GSL::Resource::Fixed_mem_range_32 res_mem(buffer.Pointer, buffer.Length);
                 GSL::Resource::Extended_Interrupt res_i2c_irq(buffer.Pointer, buffer.Length);
-                base = res_mem.address();
-                length = res_mem.length();
-                i2c_irq = res_i2c_irq.irq();
-                initialize_driver(base, length, i2c_irq, i2c_slv_adr, mssl_irq, gpio_addr, gpio_length, gpio_pin, gpio_irq);
+                i2c.base = res_mem.address();
+                i2c.length = res_mem.length();
+                i2c.irq = res_i2c_irq.irq();
             }
             AcpiOsFree(buffer.Pointer);
         }else{
             Genode::error("Failed to get I2C device");
+            throw DeviceNotFound(); 
         }
     }
 
     return status;
 }
 
+/*
 void Acpi::initialize_driver(Genode::addr_t base, Genode::uint32_t length,
         Genode::uint32_t i2c_irq, Genode::uint16_t i2c_slv_adr, Genode::uint32_t mssl_irq,
         Genode::addr_t gpio_base, Genode::uint32_t gpio_length, Genode::uint16_t gpio_pin, Genode::uint32_t gpio_irq)
@@ -206,6 +204,7 @@ void Acpi::initialize_driver(Genode::addr_t base, Genode::uint32_t length,
         mssl_irq,
         gpio_irq);
 }
+*/
 
 void Acpi::irq_handler()
 {
@@ -217,19 +216,35 @@ void Acpi::irq_handler()
     AcpiOsWaitEventsComplete();
 }
 
-int Acpi::enable_mssl1680(void *acpi, bool enable)
+int Acpi::enable_mssl1680(bool enable)
 {
     char _psx[5] = {'_', 'P', 'S', (enable) ? '0' : '3', '\0'};
-    ACPI_STATUS status = AcpiEvaluateObject(((Acpi*)acpi)->MSSL1680, (ACPI_STRING)"_PS0", nullptr, nullptr);
-    if(status != AE_OK){
+    ACPI_STATUS status = AcpiEvaluateObject(MSSL1680, (ACPI_STRING)"_PS0", nullptr, nullptr);
+    if(status != AE_OK)
         Genode::warning("Failed to enable device via ACPI, reason=", status);
+/*
         if(((Acpi*)acpi)->pin.constructed()){
             Genode::log("Enabling device via GPIO");
             ((Acpi*)acpi)->pin->set(enable);
             return 0;
         }
-    }
+*/
     return status;
+}
+
+i2c_desc *Acpi::get_i2c()
+{
+    return &i2c;
+}
+
+gslx_desc *Acpi::get_gslx()
+{
+    return &gslx;
+}
+
+gpio_desc *Acpi::get_gpio()
+{
+    return &gpio;
 }
 
 void Resource::I2C_serial_bus::parse()

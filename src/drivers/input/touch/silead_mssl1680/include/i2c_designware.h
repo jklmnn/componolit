@@ -5,9 +5,12 @@
 #include <util/fifo.h>
 #include <base/log.h>
 #include <base/signal.h>
+#include <base/attached_io_mem_dataspace.h>
 #include <timer_session/connection.h>
 #include <irq_session/connection.h>
 #include <util/reconstructible.h>
+
+#include <acpi_gsl.h>
 
 namespace DW {
     class I2C;
@@ -65,7 +68,7 @@ public:
     }
 };
 
-class DW::I2C : Genode::Mmio
+class DW::I2C : Genode::Attached_io_mem_dataspace, Genode::Mmio
 {
     /*
      * Space not used by Bitfields is reserved space and can cause undefined behaviour if it is written to.
@@ -355,6 +358,7 @@ class DW::I2C : Genode::Mmio
         struct TXCICLR  : Bitfield <0, 1> {};
     };
 private:
+    struct GSL::i2c_desc *_desc;
     Timer::Connection timer;
     Genode::Fifo<Genode::Fifo_element<DW::Message>> message_queue;
     Genode::Irq_connection _irq;
@@ -366,7 +370,7 @@ private:
     void _init_tx();
     void _tx();
 public:
-    I2C(Genode::addr_t, Genode::uint32_t, Genode::Env&, Genode::addr_t = 0, Genode::size_t = 0);
+    I2C(Genode::Env&, struct GSL::i2c_desc*);
     void _stat();
     inline void handle_irq(){
         _stat();

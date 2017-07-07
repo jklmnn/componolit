@@ -16,13 +16,12 @@ extern "C" {
 #include "acnamesp.h"
 }
 
-#include <i2c_designware.h>
-#include <gslx680.h>
-#include <gpio_gsl.h>
-
 namespace GSL {
     class Acpi;
     struct Irq;
+    struct i2c_desc;
+    struct gslx_desc;
+    struct gpio_desc;
     namespace Resource {
         enum class SMALL {
             IRQ = 0x4,
@@ -61,6 +60,7 @@ namespace GSL {
         struct Fixed_mem_range_32_description;
         struct Gpio_connection_description;
     };
+    class DeviceNotFound : Genode::Exception {};
 };
 
 struct GSL::Irq
@@ -68,6 +68,24 @@ struct GSL::Irq
     UINT32 irq;
     ACPI_OSD_HANDLER handler;
     void *context;
+};
+
+struct GSL::i2c_desc {
+    Genode::addr_t base;
+    Genode::uint32_t length;
+    Genode::uint32_t irq;
+};
+
+struct GSL::gslx_desc {
+    Genode::uint16_t slv_addr;
+    Genode::uint32_t irq;
+};
+
+struct GSL::gpio_desc {
+    Genode::addr_t base;
+    Genode::uint32_t length;
+    Genode::uint32_t irq;
+    Genode::uint16_t pin;
 };
 
 class GSL::Acpi
@@ -78,22 +96,23 @@ private:
 
     Genode::Signal_handler<GSL::Acpi> sci_irq;
     Genode::Constructible<Genode::Irq_connection> sci_conn;
-    Genode::Constructible<Genode::Attached_io_mem_dataspace> i2c_mem;
-    Genode::Constructible<DW::I2C> i2c;
-    Genode::Constructible<GSL::X680> x680;
-    Genode::Constructible<Genode::Attached_io_mem_dataspace> gpio_mem;
-    Genode::Constructible<GSL::GPIO::Pin> pin;
+    
+    GSL::i2c_desc i2c;
+    GSL::gslx_desc gslx;
+    GSL::gpio_desc gpio;
 
     ACPI_HANDLE MSSL1680;
 
     void init_acpi();
     static ACPI_STATUS init_gslx680(ACPI_HANDLE, UINT32, void*, void**);
     ACPI_STATUS load_resources(ACPI_HANDLE);
-    void initialize_driver(Genode::addr_t, Genode::uint32_t, Genode::uint32_t, Genode::uint16_t, Genode::uint32_t, Genode::addr_t, Genode::uint32_t, Genode::uint16_t, Genode::uint32_t);
 public:
     Acpi(Genode::Env &);
     void irq_handler();
-    static int enable_mssl1680(void *, bool);
+    int enable_mssl1680(bool);
+    GSL::i2c_desc *get_i2c();
+    GSL::gslx_desc *get_gslx();
+    GSL::gpio_desc *get_gpio();
 };
 
 struct GSL::Resource::I2C_serial_bus_description {

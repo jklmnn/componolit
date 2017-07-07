@@ -3,10 +3,11 @@
 
 using namespace DW;
 
-I2C::I2C(Genode::addr_t base, Genode::uint32_t irq, Genode::Env &env, Genode::addr_t phys, Genode::size_t length) :
-    Genode::Mmio(base),
+I2C::I2C(Genode::Env &env, GSL::i2c_desc *desc) :
+    Genode::Attached_io_mem_dataspace(env, desc->base, desc->length, true),
+    Genode::Mmio((Genode::addr_t)local_addr<Genode::addr_t>()),
     timer(env),
-    _irq(env, irq)
+    _irq(env, desc->irq)
 {
     sigh.construct(env.ep(), *this, &I2C::handle_irq);
     _irq.sigh(*sigh);
@@ -191,6 +192,7 @@ void I2C::_tx()
         write<INTR_MASK>(0x244);
     }
     write<IC_ENABLE>(0);
+    //TODO callback
     _irq.ack_irq();
     if(!message_queue.empty())
         _init_tx();

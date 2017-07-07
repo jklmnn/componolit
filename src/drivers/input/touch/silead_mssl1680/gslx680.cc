@@ -3,16 +3,18 @@
 
 using namespace GSL;
 
-X680::X680(DW::I2C *_i2c, Genode::Env &env, void *_acpi, int(*_enable_acpi)(void*, bool), Genode::uint16_t addr, Genode::uint32_t irq, Genode::uint32_t gpio_irq) :
+X680::X680(Genode::Env  &env, DW::I2C *i2c, GSL::Acpi *acpi, GSL::GPIO::Pin *pin, struct GSL::gslx_desc *desc) :
     fw_heap(&env.ram(), &env.rm()),
     config(env, "config"),
     firmware(env, config.xml().sub_node("firmware").attribute_value("name", Genode::String<128>()).string()),
-    _addr(addr),
-    _irq(env, irq),
-    _gpio_irq(env, gpio_irq),
+    _irq(env, desc->irq),
     _timer(env),
-    msgs(addr)
+    msgs(desc->slv_addr)
 {
+    _i2c = i2c;
+    _acpi = acpi;
+    _pin = pin;
+    _desc = desc;
     fw_header = firmware.local_addr<FW::header>();
     fw_page = (FW::page*)&(firmware.local_addr<Genode::uint8_t>()[sizeof(FW::header)]);
     char *magic = firmware.local_addr<char>();
@@ -27,15 +29,8 @@ X680::X680(DW::I2C *_i2c, Genode::Env &env, void *_acpi, int(*_enable_acpi)(void
     }
     _sigh.construct(env.ep(), *this, &X680::handle_irq);
     _irq.sigh(*_sigh);
-    _gpio_sigh.construct(env.ep(), *this, &X680::handle_gpio);
-    _gpio_irq.sigh(*_gpio_sigh);
     Genode::log("Setting up touch device");
-    acpi = _acpi;
-    enable_acpi = _enable_acpi;
-    i2c = _i2c;
-    _addr = addr;
     _irq.ack_irq();
-    _gpio_irq.ack_irq();
     enable(false);
     enable(true);
 }
@@ -45,14 +40,14 @@ void X680::setup()
     _irq.ack_irq();
     Genode::log("Setting up device");
     Genode::log("Resetting device");
-    i2c->send(&msgs.reset_1);
-    i2c->send(&msgs.reset_2);
-    i2c->send(&msgs.reset_3);
+    _i2c->send(&msgs.reset_1);
+    _i2c->send(&msgs.reset_2);
+    _i2c->send(&msgs.reset_3);
     
     flash_firmware();
     
     Genode::log("Starting device");
-    i2c->send(&msgs.startup);
+    _i2c->send(&msgs.startup);
     Genode::log("Touch device ready.");
     is_initialized = true;
 }
@@ -65,24 +60,20 @@ void X680::flash_firmware()
         Genode::uint8_t p_buf[5];
         p_buf[0] = 0xf0;
         Genode::memcpy(&p_buf[1], (Genode::uint8_t*)&(fw_page[i].address), 4);
-        DW::Message *page = new (fw_heap) DW::Message(_addr, 0x0, 5, p_buf);
-        i2c->send(new (fw_heap) Genode::Fifo_element<DW::Message>(page));
+        DW::Message *page = new (fw_heap) DW::Message(_desc->slv_addr, 0x0, 5, p_buf);
+        _i2c->send(new (fw_heap) Genode::Fifo_element<DW::Message>(page));
         
         Genode::uint8_t d_buf[fw_page[i].size + 1];
         d_buf[0] = 0;
         Genode::memcpy(&d_buf[1], fw_page[i].data, fw_page[i].size);
-        DW::Message *data  = new (fw_heap) DW::Message(_addr, 0x0, (Genode::uint16_t)(fw_page[i].size + 1), d_buf);
-        i2c->send(new (fw_heap) Genode::Fifo_element<DW::Message>(data));
+        DW::Message *data  = new (fw_heap) DW::Message(_desc->slv_addr, 0x0, (Genode::uint16_t)(fw_page[i].size + 1), d_buf);
+        _i2c->send(new (fw_heap) Genode::Fifo_element<DW::Message>(data));
     }
 }       
 
 void X680::enable(bool e)
 {
-    enable_acpi(acpi, e);
-}
-
-DW::I2C *X680::driver()
-{
-    return i2c;
+    if(_acpi->enable_mssl1680(e))
+        _pin->set(e);
 }
 
