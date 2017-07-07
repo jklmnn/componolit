@@ -48,23 +48,39 @@ namespace DW {
         SDA_HOLD = 65600
     };
     class Message;
+    class Message_callback;
 };
 
-class DW::Message
+class DW::Message_callback
+{
+public:
+    virtual void callback(int, DW::Message*) = 0;
+};
+
+class DW::Message : public Genode::Fifo<DW::Message>::Element
 {
 public:
     Genode::uint16_t addr;
     Genode::uint16_t flags;
     Genode::uint16_t len;
+    Genode::uint8_t reg;
     Genode::uint8_t *buf;
     Genode::uint16_t status;
+    DW::Message_callback *cb;
+    int callback_status;
 
-    Message(Genode::uint16_t a, Genode::uint16_t f, Genode::uint16_t l, Genode::uint8_t *b):
-        addr(a), flags(f), len(l), buf(b), status(0) {}
+    Message(Genode::uint16_t a, Genode::uint16_t f, Genode::uint16_t l, Genode::uint8_t r, Genode::uint8_t *b, DW::Message_callback *mc, int cs):
+        addr(a), flags(f), len(l), reg(r), buf(b), status(0), cb(mc), callback_status(cs) {}
 
     void dump()
     {
         Genode::log("addr: ", addr, "\nflags: ", flags, "\nlen: ", len, "\nstatus: ", status);
+    }
+
+    void callback()
+    {
+        if(cb)
+            cb->callback(callback_status, this);
     }
 };
 
@@ -360,7 +376,7 @@ class DW::I2C : Genode::Attached_io_mem_dataspace, Genode::Mmio
 private:
     struct GSL::i2c_desc *_desc;
     Timer::Connection timer;
-    Genode::Fifo<Genode::Fifo_element<DW::Message>> message_queue;
+    Genode::Fifo<DW::Message> message_queue;
     Genode::Irq_connection _irq;
     Genode::Constructible<Genode::Signal_handler<DW::I2C>> sigh;
     int busy_wait();
@@ -375,6 +391,6 @@ public:
     inline void handle_irq(){
         _stat();
     }
-    void send(Genode::Fifo_element<DW::Message>*);
+    void send(DW::Message*);
 };
 

@@ -76,7 +76,7 @@ void I2C::init_device()
     write<INTR_MASK>(0);
 }
 
-void I2C::send(Genode::Fifo_element<Message> *msg)
+void I2C::send(Message *msg)
 {
     message_queue.enqueue(msg);
 
@@ -88,8 +88,8 @@ void I2C::_init_tx()
 {
     busy_wait();
 
-    Genode::uint16_t addr = message_queue.head()->object()->addr;
-    Genode::log("Initializing message");
+    Genode::uint16_t addr = message_queue.head()->addr;
+    //Genode::log("Initializing message");
     ic_enable_wait(false); 
     write<CON::M10BADR>(0);
 
@@ -105,7 +105,7 @@ void I2C::_init_tx()
 
 void I2C::_stat()
 {
-    Genode::log("handling i2c irq");
+    //Genode::log("handling i2c irq");
 
     bool enable = read<IC_ENABLE>();
     RAW_INTR_STAT::access_t stat = read<RAW_INTR_STAT>();
@@ -170,30 +170,27 @@ void I2C::_stat()
 
     if (stat & INTR::TX_EMPTY){
         //TODO; write msg to buffer
-        Genode::log("TX");
+        //Genode::log("TX");
         _tx();
     }
 }
 
 void I2C::_tx()
 {
-    Genode::log("Sending message...");
-    Message msg = *message_queue.head()->object();
+    Message msg = *message_queue.head();
     Genode::uint16_t addr = msg.addr;
     if(!message_queue.empty()){
         Genode::uint32_t tx_limit = I2C_C::TX_FIFO - read<TX_FLR>();
         Genode::uint32_t rx_limit = I2C_C::RX_FIFO - read<RX_FLR>();
+        write<DATA_CMD>(DATA_CMD::stopping_write(0, msg.reg, false));
         for(;tx_limit > 0 && msg.status < msg.len; --tx_limit, ++msg.status){
             Genode::uint8_t byte = msg.buf[msg.status];
             DATA_CMD::access_t d = DATA_CMD::stopping_write(0, byte, (msg.len - msg.status == 1));
             write<DATA_CMD>(d);
         }
-        message_queue.dequeue()->object()->dump();
-        write<INTR_MASK>(0x244);
     }
     write<IC_ENABLE>(0);
-    //TODO callback
+    write<INTR_MASK>(0x244);
+    message_queue.dequeue()->callback();
     _irq.ack_irq();
-    if(!message_queue.empty())
-        _init_tx();
 }

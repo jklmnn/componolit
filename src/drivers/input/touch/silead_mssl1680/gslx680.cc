@@ -4,12 +4,11 @@
 using namespace GSL;
 
 X680::X680(Genode::Env  &env, DW::I2C *i2c, GSL::Acpi *acpi, GSL::GPIO::Pin *pin, struct GSL::gslx_desc *desc) :
-    fw_heap(&env.ram(), &env.rm()),
+    _heap(&env.ram(), &env.rm()),
     config(env, "config"),
     firmware(env, config.xml().sub_node("firmware").attribute_value("name", Genode::String<128>()).string()),
     _irq(env, desc->irq),
-    _timer(env),
-    msgs(desc->slv_addr)
+    _timer(env)
 {
     _i2c = i2c;
     _acpi = acpi;
@@ -39,37 +38,8 @@ void X680::setup()
 {
     _irq.ack_irq();
     Genode::log("Setting up device");
-    Genode::log("Resetting device");
-    _i2c->send(&msgs.reset_1);
-    _i2c->send(&msgs.reset_2);
-    _i2c->send(&msgs.reset_3);
-    
-    flash_firmware();
-    
-    Genode::log("Starting device");
-    _i2c->send(&msgs.startup);
-    Genode::log("Touch device ready.");
-    is_initialized = true;
+    write(REG_STATUS, rst1, 1, S_RST1);
 }
-
-void X680::flash_firmware()
-{
-    Genode::log("Writing firmware...");
-    for(Genode::uint32_t i = 0; i < fw_header->pages; ++i){
-
-        Genode::uint8_t p_buf[5];
-        p_buf[0] = 0xf0;
-        Genode::memcpy(&p_buf[1], (Genode::uint8_t*)&(fw_page[i].address), 4);
-        DW::Message *page = new (fw_heap) DW::Message(_desc->slv_addr, 0x0, 5, p_buf);
-        _i2c->send(new (fw_heap) Genode::Fifo_element<DW::Message>(page));
-        
-        Genode::uint8_t d_buf[fw_page[i].size + 1];
-        d_buf[0] = 0;
-        Genode::memcpy(&d_buf[1], fw_page[i].data, fw_page[i].size);
-        DW::Message *data  = new (fw_heap) DW::Message(_desc->slv_addr, 0x0, (Genode::uint16_t)(fw_page[i].size + 1), d_buf);
-        _i2c->send(new (fw_heap) Genode::Fifo_element<DW::Message>(data));
-    }
-}       
 
 void X680::enable(bool e)
 {
@@ -77,3 +47,46 @@ void X680::enable(bool e)
         _pin->set(e);
 }
 
+void X680::write(Genode::uint8_t reg, Genode::uint8_t *data, Genode::size_t len, int return_status)
+{
+    DW::Message *msg = new (_heap) DW::Message(_desc->slv_addr, 0x0, len, reg, data, this, return_status);
+    _i2c->send(msg);
+}
+
+void X680::read(Genode::uint8_t reg, Genode::uint8_t *data, Genode::size_t len, int return_status)
+{ }
+
+void X680::callback(int status, DW::Message *msg)
+{
+    int next = (current_page == (fw_header->pages - 1)) ? S_STARTUP : S_FW_ADR;
+    switch(status){
+        case S_RST1:
+            _timer.usleep(10000);
+            write(REG_UNKNOWN, rst2, 1, S_RST3);
+            break;
+        case S_RST2:
+            _timer.usleep(10000);
+            write(REG_TOUCH_STATUS, rst3, 4, S_RST3);
+            break;
+        case S_RST3:
+            _timer.usleep(10000);
+            Genode::log("Writing firmware");
+        case S_FW_ADR:
+            if(current_page < fw_header->pages)
+                write(REG_PAGE, fw_page[current_page].address, sizeof(fw_page[current_page].address), S_FW_DATA);
+            break;
+        case S_FW_DATA:
+            write(REG_ZERO, fw_page[current_page].data, sizeof(fw_page[current_page].data), next);
+            ++current_page;
+            break;
+        case S_STARTUP:
+            Genode::log("Starting up device");
+            write(REG_STATUS, strt, 1, S_RDY);
+            _timer.usleep(10000);
+            is_initialized = true;
+            Genode::log("GSLX initialized.");
+        default:
+            break;
+    }
+    _heap.free((void*)msg, sizeof(*msg));
+}

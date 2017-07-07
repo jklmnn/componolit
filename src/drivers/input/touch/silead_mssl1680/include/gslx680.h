@@ -5,7 +5,6 @@
 #include <base/heap.h>
 #include <base/signal.h>
 #include <base/attached_rom_dataspace.h>
-#include <util/fifo.h>
 #include <util/reconstructible.h>
 #include <timer_session/connection.h>
 
@@ -14,9 +13,6 @@
 #include <gpio_gsl.h>
 
 namespace GSL{
-    enum {
-        IRQ = 68
-    };
     namespace FW {
         struct header{
             Genode::uint32_t magic;
@@ -32,7 +28,7 @@ namespace GSL{
             Genode::uint32_t pages;
         } __attribute__((packed));
         struct page {
-            Genode::uint16_t address;
+            Genode::uint8_t address[2];
             Genode::uint16_t size;
             Genode::uint8_t data[128];
         } __attribute__((packed));
@@ -43,63 +39,55 @@ namespace GSL{
         };
         class InvalidFirmware : Genode::Exception { };
     };
-    class X680;
-    class Messages;
-};
-
-class GSL::Messages {
-
-private:
-
-public:
-    Genode::uint8_t data[11] = {
-        0xe0, 0x00,
-        0xe0, 0x88,
-        0xe4, 0x04,
-        0xbc, 0x00, 0x00, 0x00, 0x00
+    enum {
+        REG_ZERO = 0x00,
+        REG_STATUS = 0xe0,
+        REG_PAGE = 0xf0,
+        REG_TOUCH_STATUS = 0xbc,
+        REG_UNKNOWN = 0xe4
     };
-
-    DW::Message m_startup;
-    DW::Message m_reset_1;
-    DW::Message m_reset_2;
-    DW::Message m_reset_3;
-
-    Genode::Fifo_element<DW::Message> startup { &m_startup };
-    Genode::Fifo_element<DW::Message> reset_1 { &m_reset_1 };
-    Genode::Fifo_element<DW::Message> reset_2 { &m_reset_2 };
-    Genode::Fifo_element<DW::Message> reset_3 { &m_reset_3 };
-    
-    Messages(Genode::uint16_t _addr) :
-        m_startup (_addr, 0, 2, &data[0]),
-        m_reset_1 (_addr, 0, 2, &data[2]),
-        m_reset_2 (_addr, 0, 2, &data[4]),
-        m_reset_3 (_addr, 0, 5, &data[6])
-    { }
+    enum {
+        S_IDLE = 0,
+        S_RDY = 1,
+        S_RST1 = 2,
+        S_RST2 = 3,
+        S_RST3 = 4,
+        S_FW_ADR = 5,
+        S_FW_DATA = 6,
+        S_STARTUP = 7
+    };
+    class X680;
 };
 
-
-class GSL::X680 {
+class GSL::X680 : DW::Message_callback {
 
 private:
-    Genode::Heap fw_heap;
+
+    Genode::uint8_t rst1[1] = { 0x88 };
+    Genode::uint8_t rst2[1] = { 0x04 };
+    Genode::uint8_t rst3[4] = { 0x00, 0x00, 0x00, 0x00 };
+    Genode::uint8_t strt[1] = { 0x00 };
+    Genode::uint32_t current_page = 0;
+
+    Genode::Heap _heap;
     Genode::Attached_rom_dataspace config;
     Genode::Attached_rom_dataspace firmware;
     Genode::Irq_connection _irq;
     Genode::Constructible<Genode::Signal_handler<GSL::X680>> _sigh;
     Timer::Connection _timer;
-   
+
     struct GSL::gslx_desc *_desc;
     DW::I2C *_i2c;
     GSL::Acpi *_acpi;
     GSL::GPIO::Pin *_pin;
-    GSL::Messages msgs;
     GSL::FW::header *fw_header;
     GSL::FW::page *fw_page;
     bool is_initialized = false;
     void setup();
     void enable(bool);
     void flash_firmware();
-
+    void write(Genode::uint8_t, Genode::uint8_t*, Genode::size_t, int);
+    void read(Genode::uint8_t, Genode::uint8_t*, Genode::size_t, int);
 public:
     X680(Genode::Env&, DW::I2C*, GSL::Acpi*, GSL::GPIO::Pin*, struct GSL::gslx_desc*);
     inline void handle_irq(){
@@ -109,4 +97,5 @@ public:
         _irq.ack_irq();
         Genode::log("finished GSLX IRQ");
     }
+    void callback(int, DW::Message*) override;
 };
