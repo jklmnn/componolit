@@ -1,12 +1,13 @@
-#include <QGuiApplication>
-#include <QQmlApplicationEngine>
+
+#include <qpa/qplatforminputcontext.h>
+#include <platforminputcontext.h>
+#include <desktopinputpanel.h>
+
+using namespace QtVirtualKeyboard;
 
 int main(int argc, char *argv[])
 {
-    QGuiApplication app(argc, argv);
-
-    QQmlApplicationEngine engine;
-    engine.load(QUrl(QStringLiteral("qrc:/main.qml")));
-
-    return app.exec();
+    QPointer<AbstractInputPanel> m_inputPanel = new DesktopInputPanel();
+    m_inputPanel->createView();
+    return 0;
 }
