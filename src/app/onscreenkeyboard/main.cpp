@@ -3,11 +3,14 @@
 #include <platforminputcontext.h>
 #include <desktopinputpanel.h>
 
+#include <QGuiApplication>
+
 using namespace QtVirtualKeyboard;
 
 int main(int argc, char *argv[])
 {
-    QPointer<AbstractInputPanel> m_inputPanel = new DesktopInputPanel();
+    QGuiApplication app(argc, argv);
+    QPointer<AbstractInputPanel> m_inputPanel = new DesktopInputPanel(&app);
     m_inputPanel->createView();
-    return 0;
+    return app.exec();
 }
