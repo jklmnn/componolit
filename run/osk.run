@@ -19,7 +19,7 @@ create_boot_directory
 # Create Qt tar archive
 #
 
-create_qt5_fs_tar_archive "onscreenkeyboard" "gui quick"
+create_qt5_fs_tar_archive "onscreenkeyboard" "gui quick plugins"
 
 #
 # Generate config
