@@ -39,7 +39,7 @@ append config {
 append config [qt5_start_nodes feature]
 
 append config {
-	<start name="onscreenkeyboard" caps="250">
+	<start name="onscreenkeyboard" caps="300">
 		<resource name="RAM" quantum="80M"/>
 		<config>
 			<vfs>
