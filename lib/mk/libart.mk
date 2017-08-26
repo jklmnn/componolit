@@ -7,18 +7,7 @@ ANDROID_SECTIONS = \
 	/art_cc_library[@name=libart] \
 	/art_cc_library[@name=libart]/arch/$(ANDROID_ARCH)
 
-ANDROID_EXCLUDE_OPT = \
-	-Wimplicit-fallthrough \
-	-Wint-to-void-pointer-cast \
-	-Wthread-safety \
-	-Wthread-safety-negative \
-	-Wunreachable-code-break \
-	-Wunreachable-code-return \
-	-Wused-but-marked-unused \
-	-Wno-undefined-var-template \
-	-Wno-constant-conversion \
-	-Wredundant-decls
-
+include $(call select_from_repositories,lib/mk/libart-defaults.inc)
 include $(call select_from_repositories,lib/mk/android-lib.inc)
 
 # For custom stdatomic.h
@@ -40,13 +29,6 @@ CC_OPT += -DART_BASE_ADDRESS=0x70000000
 # Use compiler's definition of UINT64_C/INT64_C as a fallback
 CC_OPT += -DUINT64_C=__UINT64_C
 CC_OPT += -DINT64_C=__INT64_C
-
-# Code contains multi-line comments
-CC_OPT += -Wno-error=comment
-
-# Prevent errors regarding hidden constructor for struct
-# sigaction/sigaltstack/sigstack and sigvec
-CC_OPT += -Wno-error=shadow
 
 # FIXME: The _Atomic keyword is not available in the Genode toolchain
 CC_OPT += -D_Atomic=
@@ -86,6 +68,6 @@ CC_OPT += -I$(call select_from_ports,dlmalloc)/dlmalloc/external/dlmalloc/.git
 #
 # FIXME: SUPPRESS WARNINGS! DEVELOPMENT ONLY - REMOVE FOR PRODUCTION!
 $(warning SUPPRESSING WARNINGS - REMOVE FOR PRODUCTION!)
-CC_OPT+= -w
+CC_OPT += -w
 
 LIBS += valgrind dlmalloc zlib icu
