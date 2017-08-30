@@ -1,0 +1,7 @@
+LICENSE   := GPLv3
+VERSION   := git
+DOWNLOADS := rvision.git
+
+URL(rvision) := https://gitlab.com/jklmnn/rvision.git
+DIR(rvision) := rvision
+REV(rvision) := a0fc7ae0a1df8de5a683713e66d405ef2d60b4e
