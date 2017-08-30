@@ -24,12 +24,9 @@ $(GENDIR)/$(OUTPUT): $(HEADERS)
 vpath %.cc $(GENDIR)
 SRC_C += $(OUTPUT)
 
-# Position independent library
-CC_OPT += -fPIC
-
 #
 # FIXME: SUPPRESS WARNINGS! DEVELOPMENT ONLY - REMOVE FOR PRODUCTION!
 $(warning SUPPRESSING WARNINGS - REMOVE FOR PRODUCTION!)
 CC_OPT += -w
 
-LIBS += valgrind dlmalloc zlib icu
+LIBS += valgrind dlmalloc zlib icu sigchainlib cmdline

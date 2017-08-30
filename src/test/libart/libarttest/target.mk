@@ -19,8 +19,8 @@ CC_OPT += -Wno-error=unused-parameter
 $(warning SUPPRESSING WARNINGS - REMOVE FOR PRODUCTION!)
 CC_OPT += -w
 
-# For including "../../external/dlmalloc/malloc.c"
-CC_OPT += -I$(call select_from_ports,dlmalloc)/dlmalloc/external/dlmalloc
-
 SRC_CC += main.cc
-LIBS   += gtest posix valgrind pthread
+LIBS   += gtest libart
+
+# FIXME: Shouldn't this be included through 'libart'?
+LIBS += valgrind dlmalloc

@@ -32,11 +32,6 @@ CC_OPT += -I$(call select_from_repositories,include/)
 CC_OPT += -DUINT64_C=__UINT64_C
 CC_OPT += -DINT64_C=__INT64_C
 
-# For including "../../../external/dlmalloc/malloc.c" in dlmalloc.cc
-# We use the .git directory as the include wants to go back 3 levels and
-# this is the only directory inside the last dlmalloc dir.
-CC_OPT += -I$(call select_from_ports,dlmalloc)/dlmalloc/external/dlmalloc/.git
-
 # Taken from build/soong/android/config.go, Mips/Mips64 would be 0x5C000000
 CC_OPT += -DART_BASE_ADDRESS=0x70000000
 
@@ -65,10 +60,10 @@ CC_OPT += -I$(call select_from_repositories,src/lib/libart/include)
 CC_OPT += -I$(call select_from_ports,libart)/art/runtime/generated
 
 # For sigchain.h
-CC_OPT += -I$(call select_from_ports,libart)/art/sigchainlib
+#CC_OPT += -I$(call select_from_ports,libart)/art/sigchainlib
 
 # For cmdline_types.h
-CC_OPT += -I$(call select_from_ports,libart)/art/cmdline
+#CC_OPT += -I$(call select_from_ports,libart)/art/cmdline
 
 # Enable UINTPTR_MAX
 CC_OPT += -D__STDC_LIMIT_MACROS=1
