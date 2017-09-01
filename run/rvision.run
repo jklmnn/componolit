@@ -7,6 +7,7 @@ source ${genode_dir}/repos/libports/run/qt5_common.inc
 append build_components [qt5_build_components feature]
 
 append build_components {
+	lib/mesa/swrast
 	app/rvision
 	lib/qt5/qtdeclarative/src/imports/qtquick2
 }
@@ -49,6 +50,11 @@ append config {
 			</vfs>
 			<libc stdout="/dev/log" stderr="/dev/log"/>
 		</config>
+		<route>
+			<service name="Nitpicker"> <child name="wm"/> </service>
+			<service name="ROM" label="egl_drv.lib.so"> <parent label="egl_swrast.lib.so" /> </service>
+			<any-service> <parent /> <any-child/> </any-service>
+		</route>
 	</start>
 </config>
 }
@@ -64,7 +70,9 @@ append boot_modules [qt5_boot_modules feature]
 append boot_modules {
 	rvision
 	freetype.lib.so
-	gallium.lib.so
+	expat.lib.so
+        glapi.lib.so
+        mesa.lib.so
 	ld.lib.so
 	libc.lib.so
 	libc_pipe.lib.so
@@ -87,7 +95,8 @@ append boot_modules {
 	stdcxx.lib.so
         libcrypto.lib.so
         libssl.lib.so
-        gallium.lib.so
+        egl.lib.so
+        egl_swrast.lib.so
 	qt5_fs_rvision.tar
 }
 
