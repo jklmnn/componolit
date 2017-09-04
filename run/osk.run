@@ -48,6 +48,11 @@ append config {
 			</vfs>
 			<libc stdout="/dev/log" stderr="/dev/log"/>
 		</config>
+		<route>
+			<service name="Nitpicker"> <child name="wm"/> </service>
+			<service name="ROM" label="egl_drv.lib.so"> <parent label="egl_swrast.lib.so" /> </service>
+			<any-service> <parent /> <any-child/> </any-service>
+		</route>
 	</start>
 </config>
 }
@@ -66,7 +71,11 @@ append boot_modules [qt5_boot_modules feature]
 append boot_modules {
 	onscreenkeyboard
 	freetype.lib.so
-	gallium.lib.so
+	egl.lib.so
+	egl_swrast.lib.so
+        glapi.lib.so
+        expat.lib.so
+        mesa.lib.so
 	ld.lib.so
 	libc.lib.so
 	libc_pipe.lib.so
