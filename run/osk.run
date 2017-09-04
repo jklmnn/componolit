@@ -103,6 +103,7 @@ append boot_modules {
         qt5_qquicklayoutsplugin.lib.so
         qt5_qtvirtualkeyboardplugin.lib.so
         qt5_qtvirtualkeyboardstylesplugin.lib.so
+	qt5_windowplugin.lib.so
 }
 
 build_boot_image $boot_modules
