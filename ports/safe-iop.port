@@ -1,0 +1,7 @@
+LICENSE   := Apache_2.0
+VERSION   := git
+DOWNLOADS := safe-iop.git
+
+URL(safe-iop) := https://android.googlesource.com/platform/external/safe-iop
+DIR(safe-iop) := safe-iop
+REV(safe-iop) := master
