@@ -25,9 +25,6 @@ CC_OPT += -DART_FRAME_SIZE_LIMIT=1736
 CC_OPT += -DART_BASE_ADDRESS_MIN_DELTA=-0x1000000
 CC_OPT += -DART_BASE_ADDRESS_MAX_DELTA=0x1000000
 
-# For custom stdatomic.h
-CC_OPT += -I$(call select_from_repositories,include/)
-
 # Use compiler's definition of UINT64_C/INT64_C as a fallback
 CC_OPT += -DUINT64_C=__UINT64_C
 CC_OPT += -DINT64_C=__INT64_C
@@ -58,12 +55,6 @@ CC_OPT += -I$(call select_from_repositories,src/lib/libart/include)
 # Include path for generated asm_support_gen.h
 # We don't generate it as it comes with the sources.
 CC_OPT += -I$(call select_from_ports,libart)/art/runtime/generated
-
-# For sigchain.h
-#CC_OPT += -I$(call select_from_ports,libart)/art/sigchainlib
-
-# For cmdline_types.h
-#CC_OPT += -I$(call select_from_ports,libart)/art/cmdline
 
 # Enable UINTPTR_MAX
 CC_OPT += -D__STDC_LIMIT_MACROS=1

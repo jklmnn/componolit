@@ -1,4 +1,3 @@
-$(warning INC: libfakeatomic)
 LIBFAKEATOMIC_DIR = $(call select_from_repositories,src/lib/libfakeatomic)
 
 # For custom stdatomic.h

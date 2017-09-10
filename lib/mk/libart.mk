@@ -29,4 +29,4 @@ SRC_C += $(OUTPUT)
 $(warning SUPPRESSING WARNINGS - REMOVE FOR PRODUCTION!)
 CC_OPT += -w
 
-LIBS += valgrind dlmalloc zlib icu sigchainlib cmdline
+LIBS += valgrind dlmalloc zlib icu sigchainlib cmdline libziparchive libfakeatomic
