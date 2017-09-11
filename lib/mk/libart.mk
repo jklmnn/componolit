@@ -18,15 +18,21 @@ OUTPUT  = $($(ANDROID_NAME)_OUTPUT_EXTENSION)
 GENDIR  = $(LIB_CACHE_DIR)/$(ANDROID_BUILDTYPE)/$(ANDROID_NAME)
 
 $(GENDIR)/$(OUTPUT): $(HEADERS)
-	$(VERBOSE)$(GENTOOL) $(HEADERS) > $@.tmp
+	$(VERBOSE)$(GENTOOL) $(BASEDIR) $(HEADERS) > $@.tmp
 	$(VERBOSE)mv $@.tmp $@
 
-vpath %.cc $(GENDIR)
+vpath % $(GENDIR) $(call select_from_repositories,src/lib/libart)
 SRC_C += $(OUTPUT)
+
+# Genode implementations
+SRC_C += signal.c pthread.c runtime_genode.cc thread_genode.cc
+
+# Linux monitoring implementation is a dummy, so reuse it
+SRC_C += monitor_linux.cc
 
 #
 # FIXME: SUPPRESS WARNINGS! DEVELOPMENT ONLY - REMOVE FOR PRODUCTION!
 $(warning SUPPRESSING WARNINGS - REMOVE FOR PRODUCTION!)
 CC_OPT += -w
 
-LIBS += valgrind dlmalloc zlib icu sigchainlib cmdline libziparchive libfakeatomic
+LIBS += valgrind dlmalloc zlib icu sigchainlib cmdline libziparchive libfakeatomic pthread

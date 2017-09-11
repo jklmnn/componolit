@@ -58,3 +58,5 @@ CC_OPT += -I$(call select_from_ports,libart)/art/runtime/generated
 
 # Enable UINTPTR_MAX
 CC_OPT += -D__STDC_LIMIT_MACROS=1
+
+LIBS += pthread
