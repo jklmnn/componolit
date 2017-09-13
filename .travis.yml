@@ -11,3 +11,5 @@ before_install:
     - python3 -c 'from pyparsing import *'
 
 script: ./ci/travis.sh
+
+group: deprecated-2017Q3
