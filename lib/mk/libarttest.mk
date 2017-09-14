@@ -1,5 +1,3 @@
-TARGET = libart_test
-
 ANDROID_PORT	 = libart
 ANDROID_DIR		 = art
 ANDROID_SOURCES  = test
