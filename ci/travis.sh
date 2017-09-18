@@ -12,7 +12,7 @@ git clone --depth=50 https://github.com/genodelabs/genode-world.git ci/src/repos
 ln -sf ../../.. ci/src/repos/componolit
 
 # Prepare required ports
-./ci/src/tool/ports/prepare_port core googletest libc stdcxx dlmalloc libart liblz4 liblzma libnativehelper valgrind nova lwip
+./ci/src/tool/ports/prepare_port core googletest libc stdcxx dlmalloc libart liblz4 liblzma libnativehelper valgrind nova lwip zlib
 
 # Create build directory
 ./ci/src/tool/create_builddir x86_64 BUILD_DIR=./ci/build/
