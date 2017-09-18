@@ -13,12 +13,14 @@ Item {
         height: Screen.width < Screen.height ? parent.width : parent.height
         anchors.centerIn: parent
 
-        TextInput {
+        TextEdit {
             id: fakeTextInput
             focus: true
             //visible: false
             onTextChanged: {
-                OskInputMethod.textEvent(fakeTextInput.text)
+                OskInputMethod.textEvent(fakeTextInput.text, fakeTextInput.cursorPosition)
+                fakeTextInput.text = " "
+                fakeTextInput.cursorPosition = 1
             }
         }
 
