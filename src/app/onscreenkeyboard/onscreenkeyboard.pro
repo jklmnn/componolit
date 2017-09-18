@@ -4,7 +4,10 @@ QT += qml quick svg
 QTPLUGIN += qtvirtualkeyboardplugin
 CONFIG += c++11
 
-SOURCES += main.cpp
+SOURCES += main.cpp\
+           oskinputmethod.cc
+
+HEADERS += oskinputmethod.h
 
 RESOURCES += osk.qrc
 

@@ -12,11 +12,16 @@ Item {
         width: Screen.width < Screen.height ? parent.height : parent.width
         height: Screen.width < Screen.height ? parent.width : parent.height
         anchors.centerIn: parent
-/*
+
         TextInput {
+            id: fakeTextInput
             focus: true
+            //visible: false
+            onTextChanged: {
+                OskInputMethod.textEvent(fakeTextInput.text)
+            }
         }
-*/
+
         InputPanel {
             id: inputPanel
             z: 99
