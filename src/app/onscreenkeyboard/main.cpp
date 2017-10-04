@@ -10,10 +10,17 @@
 extern void initialize_qt_core(Genode::Env &);
 extern void initialize_qt_gui(Genode::Env &);
 
-void Libc::Component::construct(Libc::Env &env)
-{
+namespace Osk {
+    struct Main;
+};
 
-    Libc::with_libc([&]{
+struct Osk::Main {
+
+    Genode::Env &env;
+
+    Main(Genode::Env &env) : env(env)
+    {
+        Libc::with_libc([&]{
             initialize_qt_core(env);
             initialize_qt_gui(env);
             int argc = 1;
@@ -27,5 +34,11 @@ void Libc::Component::construct(Libc::Env &env)
             view.setResizeMode(QQuickView::SizeRootObjectToView);
             view.show();
             return app.exec();
-    });
+        });
+    };
+};
+
+void Libc::Component::construct(Libc::Env &env)
+{
+    static Osk::Main main(env);
 }
