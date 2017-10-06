@@ -19,7 +19,7 @@ Item {
             //visible: false
             onTextChanged: {
                 OskInputMethod.textEvent(fakeTextInput.text, fakeTextInput.cursorPosition)
-                fakeTextInput.text = " "
+                fakeTextInput.text = "0"
                 fakeTextInput.cursorPosition = 1
             }
         }
