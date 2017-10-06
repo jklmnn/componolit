@@ -1,14 +1,11 @@
 #include <oskinputmethod.h>
 
-OskInputMethod::OskInputMethod(QObject *parent)
+Osk::Input_Method::Input_Method(QObject *parent, Osk::Virtual_Input* vinput)
 {
+    _vinput = vinput;
 }
 
-OskInputMethod::~OskInputMethod()
-{
-}
-
-void OskInputMethod::textEvent(QString text, int cursor)
+void Osk::Input_Method::textEvent(QString text, int cursor)
 {
     if (cursor == 0 && text.size() == 1)
         return;
@@ -35,5 +32,13 @@ void OskInputMethod::textEvent(QString text, int cursor)
             Genode::log(s);
             break;
     }
+    if(_vinput)
+        _vinput->handle_event();
+    else
+        Genode::warning("No virtual input session attached!");
 }
 
+void Osk::Input_Method::attach_virtual_input(Virtual_Input *vinput)
+{
+    _vinput = vinput;
+}

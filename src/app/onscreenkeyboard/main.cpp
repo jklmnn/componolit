@@ -33,6 +33,8 @@ struct Osk::Main {
 
     Osk::Virtual_Input _vinput { _session.event_queue() };
 
+    Osk::Input_Method _oim { 0, &_vinput }; 
+
     Main(Genode::Env &env) : _env(env)
     {
         env.parent().announce(env.ep().manage(_root));
@@ -42,11 +44,10 @@ struct Osk::Main {
             int argc = 1;
             char *argv[] = {"osk"};
             qputenv("QT_IM_MODULE", "qtvirtualkeyboard");
-            OskInputMethod *oim = new OskInputMethod();
             QGuiApplication app(argc, argv);
             QQuickView view(QString("qrc:/main.qml"));
             QQmlContext *context = view.rootContext();
-            context->setContextProperty(QStringLiteral("OskInputMethod"), oim);
+            context->setContextProperty(QStringLiteral("OskInputMethod"), &_oim);
             view.setResizeMode(QQuickView::SizeRootObjectToView);
             view.show();
             return app.exec();
