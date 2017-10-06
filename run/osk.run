@@ -53,6 +53,9 @@ append config {
 			<service name="ROM" label="egl_drv.lib.so"> <parent label="egl_swrast.lib.so" /> </service>
 			<any-service> <parent /> <any-child/> </any-service>
 		</route>
+                <provides>
+                    <service name="Input"/>
+                </provides>
 	</start>
 </config>
 }
