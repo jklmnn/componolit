@@ -15,6 +15,7 @@ void Osk::Input_Method::textEvent(QString text, int cursor)
     else
         if (!text.size())
             c = '\r';
+    /*
     Genode::log("cursor: ", cursor);
     switch(c){
         case 10:
@@ -32,8 +33,9 @@ void Osk::Input_Method::textEvent(QString text, int cursor)
             Genode::log(s);
             break;
     }
+    */
     if(_vinput)
-        _vinput->handle_event();
+        _vinput->handle_event(c);
     else
         Genode::warning("No virtual input session attached!");
 }

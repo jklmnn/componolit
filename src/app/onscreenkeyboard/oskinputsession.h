@@ -4,6 +4,7 @@
 
 #include <base/log.h>
 
+#include <input/event.h>
 #include <input/event_queue.h>
 #include <input/keycodes.h>
 
@@ -16,7 +17,7 @@ private:
     Input::Event_queue &_queue;
 public:
     Virtual_Input(Input::Event_queue &);
-    void handle_event();
+    void handle_event(char);
     bool event_pending();
 };
 
