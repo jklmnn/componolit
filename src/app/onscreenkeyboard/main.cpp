@@ -1,11 +1,14 @@
 
 #include <libc/component.h>
+#include <input/component.h>
+#include <input/root.h>
 
 #include <QQuickView>
 #include <QGuiApplication>
 #include <QQmlContext>
 
 #include "oskinputmethod.h"
+#include "oskinputsession.h"
 
 extern void initialize_qt_core(Genode::Env &);
 extern void initialize_qt_gui(Genode::Env &);
@@ -16,10 +19,23 @@ namespace Osk {
 
 struct Osk::Main {
 
-    Genode::Env &env;
+    Genode::Env &_env;
 
-    Main(Genode::Env &env) : env(env)
+    Input::Session_component _session {
+        _env,
+        _env.ram()
+    };
+
+    Input::Root_component _root {
+        _env.ep().rpc_ep(),
+        _session
+    };
+
+    Osk::Virtual_Input _vinput { _session.event_queue() };
+
+    Main(Genode::Env &env) : _env(env)
     {
+        env.parent().announce(env.ep().manage(_root));
         Libc::with_libc([&]{
             initialize_qt_core(env);
             initialize_qt_gui(env);

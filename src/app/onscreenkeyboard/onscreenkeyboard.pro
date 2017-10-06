@@ -5,9 +5,11 @@ QTPLUGIN += qtvirtualkeyboardplugin
 CONFIG += c++11
 
 SOURCES += main.cpp\
-           oskinputmethod.cc
+           oskinputmethod.cc\
+           oskinputsession.cc
 
-HEADERS += oskinputmethod.h
+HEADERS += oskinputmethod.h\
+           oskinputsession.h
 
 RESOURCES += osk.qrc
 
