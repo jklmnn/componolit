@@ -17,7 +17,7 @@ private:
     Input::Event_queue &_queue;
 public:
     Virtual_Input(Input::Event_queue &);
-    void handle_event(char);
+    void handle_event(unsigned short);
     bool event_pending();
 };
 

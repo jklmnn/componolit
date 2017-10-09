@@ -9,9 +9,9 @@ void Osk::Input_Method::textEvent(QString text, int cursor)
 {
     if (cursor == 0 && text.size() == 1)
         return;
-    char c = 0;
+    unsigned short c = 0;
     if (cursor == 2)
-        c = text.at(1).toLatin1();
+        c = text.at(1).unicode();
     else
         if (!text.size())
             c = '\r';
@@ -28,9 +28,7 @@ void Osk::Input_Method::textEvent(QString text, int cursor)
             Genode::log("space");
             break;
         default:
-            char cs[2] = { c, '\0' };
-            Genode::String<2>s = Genode::String<2>(cs);
-            Genode::log(s);
+            Genode::log((void*)c);
             break;
     }
     */

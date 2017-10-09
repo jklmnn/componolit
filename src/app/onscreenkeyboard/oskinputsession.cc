@@ -6,7 +6,7 @@ Osk::Virtual_Input::Virtual_Input(Input::Event_queue &queue) : _queue(queue)
     Genode::log(__func__);
 }
 
-void Osk::Virtual_Input::handle_event(char c)
+void Osk::Virtual_Input::handle_event(unsigned short c)
 {
     switch(c){
         case 0:
@@ -27,10 +27,11 @@ void Osk::Virtual_Input::handle_event(char c)
             Genode::log(__func__, " space");
             break;
         default:
+            unsigned char *byte = (unsigned char*)(void*)&c;
             _queue.add(Input::Event(
-                        Input::Event::Utf8 { (unsigned char)c }
+                        Input::Event::Utf8 { byte[0], byte[1] }
                         ));
-            Genode::log(__func__, " ", c);
+            Genode::log(__func__, " ", (void*)c);
             break;
     }
 }
