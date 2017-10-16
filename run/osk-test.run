@@ -1,143 +1,16 @@
-set build_components { }
-set config { }
-set boot_modules { }
-
-source ${genode_dir}/repos/base/run/platform_drv.inc
-
-set feature(Input) 1
-set feature(Framebuffer) 1
-set feature(Timer) 1
-
-#
-# Helper functions
-#
-
-proc use_audio_drv { feature_arg } {
-	upvar $feature_arg feature
-	return [info exists feature(Audio_out)]
-}
-
-proc use_fb_drv { feature_arg } {
-	upvar $feature_arg feature
-	return [have_spec framebuffer]
-}
-
-proc use_fb_sdl { feature_arg } {
-	upvar $feature_arg feature
-	return [have_spec linux]
-}
-
-proc use_gpio_drv { feature_arg } {
-	upvar $feature_arg feature
-	return [expr {[use_usb_drv feature] &&
-	              [have_spec gpio]}]
-}
-
-proc use_input_filter { feature_arg } {
-	upvar $feature_arg feature
-	return [info exists feature(Input)]
-}
-
-proc use_nic_drv { feature_arg } {
-	upvar $feature_arg feature
-	return [expr {[info exists feature(Nic)] &&
-	              ([have_spec cadence_gem] ||
-	               [have_spec lan9118] ||
-	               [have_spec linux] ||
-	               [have_spec x86])}]
-}
-
-proc use_ps2_drv { feature_arg } {
-	upvar $feature_arg feature
-	return [have_spec ps2]
-}
-
-proc use_timer { feature_arg } {
-	upvar $feature_arg feature
-	return [info exists feature(Timer)]
-}
-
-proc use_usb_input { feature_arg } {
-	upvar $feature_arg feature
-	return [expr {[info exists feature(Input)] && 
-	              ([need_usb_hid] ||
-	               ([have_spec x86] && ![have_spec linux]))}]
-}
-
-proc use_usb_nic { feature_arg } {
-	upvar $feature_arg feature
-	return [expr {[info exists feature(Nic)] &&
-	              ([have_spec omap4] ||
-	               [have_spec arndale] ||
-	               [have_spec rpi])}]
-}
-
-proc use_usb_drv { feature_arg } {
-	upvar $feature_arg feature
-	return [expr {[use_usb_input feature] || [use_usb_nic feature]}]
-}
+source ${genode_dir}/repos/libports/run/qt5_common.inc
 
 #
 # Build
 #
 
-proc drivers_build_components { feature_arg } {
-
-	upvar $feature_arg feature
-
-	set build_components { }
-
-	# This function appends to the global 'build_components' variable, not to
-	# the local version defined above.
-	append_platform_drv_build_components
-
-	lappend_if [use_audio_drv feature]    build_components drivers/audio
-	lappend_if [use_fb_drv feature]       build_components drivers/framebuffer
-	lappend_if [use_fb_sdl feature]       build_components drivers/framebuffer/spec/sdl
-	lappend_if [use_gpio_drv feature]     build_components drivers/gpio
-	lappend_if [use_input_filter feature] build_components server/input_filter
-	lappend_if [use_nic_drv feature]      build_components drivers/nic
-	lappend_if [use_ps2_drv feature]      build_components drivers/input/spec/ps2
-	lappend_if [use_timer feature]        build_components drivers/timer
-	lappend_if [use_usb_drv feature]      build_components drivers/usb
-
-	return $build_components
-}
-
-proc gpio_drv { } { if {[have_spec rpi] && [have_spec hw]}  { return hw_gpio_drv }
-                    if {[have_spec rpi] && [have_spec foc]} { return foc_gpio_drv }
-                    return gpio_drv }
-
-proc language_chargen { } { return "en_us" }
-
-proc qt5_build_components { feature_arg } {
-
-	upvar $feature_arg feature
-
-	set build_components {
-		core
-		init
-	}
-
-	append build_components [drivers_build_components feature]
-
-	append build_components {
-		server/nitpicker
-		server/report_rom
-		app/floating_window_layouter
-		app/decorator
-		app/pointer
-		server/wm
-	}
-
-	return $build_components
-}
-
 append build_components [qt5_build_components feature]
 
 append build_components {
 	app/onscreenkeyboard
-	lib/qt5/qtdeclarative/src/imports/qtquick2
+        lib/qt5/qtdeclarative/src/imports/qtquick2
+        test/input
+        drivers/timer
 }
 
 build $build_components
@@ -148,328 +21,11 @@ create_boot_directory
 # Create Qt tar archive
 #
 
-proc create_qt5_fs_tar_archive { app_name qt_modules } {
-
-	exec rm -rf bin/qt5_fs/${app_name}/qt
-
-	if { [lsearch ${qt_modules} "gui"] != -1 } {
-		# add fonts
-		exec mkdir -p bin/qt5_fs/${app_name}/qt/lib
-		exec ln -sf [pwd]/bin/qt5_fs/qt/lib/fonts bin/qt5_fs/${app_name}/qt/lib/fonts
-	}
-
-	if { [lsearch ${qt_modules} "quick"] != -1 } {
-		# add QtQuick plugins
-		exec mkdir -p bin/qt5_fs/${app_name}/qt
-		exec ln -sf [pwd]/bin/qt5_fs/qt/qml bin/qt5_fs/${app_name}/qt/qml
-	}
-
-        if { [lsearch ${qt_modules} "plugins"] != -1 } {
-                exec mkdir -p bin/qt5_fs/${app_name}/qt
-                exec ln -sf [pwd]/bin/qt5_fs/qt/plugins bin/qt5_fs/${app_name}/qt/plugins
-        }
-
-	exec tar chf bin/qt5_fs_${app_name}.tar -C bin/qt5_fs/${app_name} .
-}
-
 create_qt5_fs_tar_archive "onscreenkeyboard" "gui quick plugins"
 
 #
 # Generate config
 #
-
-proc drivers_parent_provides { feature_arg } {
-
-	upvar $feature_arg feature
-
-	set parent_provides { }
-
-	# TODO: make dependent on features
-
-	append parent_provides {
-		<service name="ROM"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-	}
-
-	return $parent_provides
-}
-
-proc drivers_start_nodes { feature_arg } {
-
-	upvar $feature_arg feature
-
-	set start_nodes { }
-
-	# This function appends to the global 'config' variable, not to the
-	# 'start_nodes' variable defined above.
-	append_platform_drv_config
-
-	append_if [use_audio_drv feature] start_nodes {
-		<start name="audio_drv">
-			<binary name="} [audio_drv_binary] {"/>
-			<resource name="RAM" quantum="8M"/>
-			<provides><service name="Audio_out"/></provides>
-			<config/>
-		</start>
-	}
-
-	append_if [use_fb_drv feature] start_nodes {
-		<start name="fb_drv">
-			<resource name="RAM" quantum="4M"/>
-			<provides><service name="Framebuffer"/></provides>
-		</start>
-	}
-
-	append_if [use_fb_sdl feature] start_nodes {
-		<start name="fb_sdl">
-			<resource name="RAM" quantum="4M"/>
-			<provides>
-				<service name="Input"/>
-				<service name="Framebuffer"/>
-			</provides>
-		</start>
-	}
-
-	append_if [use_gpio_drv feature] start_nodes "
-		<start name=\"[gpio_drv]\">
-			<resource name=\"RAM\" quantum=\"4M\"/>
-			<provides><service name=\"Gpio\"/></provides>
-			<config/>
-		</start>"
-
-	if { [use_input_filter feature] } {
-
-		exec cp -f [genode_dir]/repos/os/src/server/input_filter/[language_chargen].chargen bin/
-
-		append start_nodes {
-			<start name="input_filter">
-				<resource name="RAM" quantum="1M" />
-				<provides> <service name="Input" /> </provides>
-				<config>}
-		append_if [use_ps2_drv feature] start_nodes {
-					<input label="ps2"/>}
-		append_if [use_usb_drv feature] start_nodes {
-					<input label="usb"/>}
-		append_if [use_fb_sdl feature] start_nodes {
-					<input label="sdl"/>}
-		append start_nodes {
-					<output>
-						<chargen>
-							<merge>}
-		append_if [use_ps2_drv feature] start_nodes {
-								<input name="ps2"/>}
-		append_if [use_usb_drv feature] start_nodes {
-								<input name="usb"/>}
-		append_if [use_fb_sdl feature] start_nodes {
-								<input name="sdl"/>}
-		append start_nodes {
-							</merge>
-							<mod1>
-								<key name="KEY_LEFTSHIFT"/> <key name="KEY_RIGHTSHIFT"/>
-							</mod1>
-							<mod2>
-								<key name="KEY_LEFTCTRL"/> <key name="KEY_RIGHTCTRL"/>
-							</mod2>
-							<mod3>
-								<key name="KEY_RIGHTALT"/> <!-- AltGr -->
-							</mod3>
-							<repeat delay_ms="500" rate_ms="50"/>}
-		append start_nodes "
-							<include rom=\"[language_chargen].chargen\"/>"
-		append start_nodes {
-						</chargen>
-					</output>
-				</config>
-				<route>
-					<service name="LOG"> <parent/> </service>
-					<service name="CPU"> <parent/> </service>
-					<service name="ROM"> <parent/> </service>
-					<service name="PD">  <parent/> </service>
-					<service name="Timer"> <child name="timer"/> </service>}
-		append_if [use_ps2_drv feature] start_nodes {
-					<service name="Input" label="ps2"> <child name="ps2_drv" /> </service>}
-		append_if [use_usb_drv feature] start_nodes {
-					<service name="Input" label="usb"> <child name="usb_drv" /> </service>}
-		append_if [use_fb_sdl feature] start_nodes {
-					<service name="Input" label="sdl"> <child name="fb_sdl" /> </service>}
-		append start_nodes {
-				</route>
-			</start>
-		}
-	}
-
-	append_if [use_nic_drv feature] start_nodes {
-		<start name="nic_drv">
-			<binary name="} [nic_drv_binary] {"/>
-			<resource name="RAM" quantum="8M"/>
-			<provides><service name="Nic"/></provides>
-		</start>
-	}
-
-	append_if [use_ps2_drv feature] start_nodes {
-		<start name="ps2_drv">
-			<resource name="RAM" quantum="1M"/>
-			<provides><service name="Input"/></provides>
-		</start>
-	}
-
-	append_if [use_timer feature] start_nodes {
-		<start name="timer">
-			<resource name="RAM" quantum="1M"/>
-			<provides><service name="Timer"/></provides>
-		</start>
-	}
-
-	if { [use_usb_drv feature] } {
-		append start_nodes {
-			<start name="usb_drv" caps="120">
-				<resource name="RAM" quantum="12M"/>
-				<provides>}
-		append_if [use_usb_input feature] start_nodes {
-					<service name="Input"/>}
-		append_if [use_usb_nic feature] start_nodes {
-					<service name="Nic"/>}
-		append start_nodes {
-				</provides>
-				<config uhci="yes" ehci="yes" xhci="no">}
-		append_if [use_usb_input feature] start_nodes {
-					<hid/>}
-		append_if [use_usb_nic feature] start_nodes {
-					<nic mac="2e:60:90:0c:4e:01" />}
-		append start_nodes {
-				</config>
-			</start>
-		}
-	}
-
-	return $start_nodes
-}
-
-proc qt5_parent_provides { feature_arg } {
-
-	upvar $feature_arg feature
-
-	set parent_provides [drivers_parent_provides feature]
-
-	return $parent_provides
-}
-
-proc qt5_start_nodes { feature_arg } {
-
-	upvar $feature_arg feature
-
-	set start_nodes [drivers_start_nodes feature]
-
-	append start_nodes {
-		<start name="nitpicker">
-			<resource name="RAM" quantum="2M"/>
-			<provides><service name="Nitpicker"/></provides>
-			<route> }
-	append_if [use_fb_sdl feature] start_nodes { 
-				<service name="Framebuffer"> <child name="fb_sdl" /> </service>
-	}
-	append_if [use_fb_drv feature] start_nodes {
-				<service name="Framebuffer"> <child name="fb_drv" /> </service>
-	}
-	append start_nodes {
-				<service name="Input">  <child name="input_filter"/> </service>
-				<service name="Report"> <child name="report_rom"/> </service>
-				<any-service> <parent /> <any-child /> </any-service>
-			</route>
-			<config>
-				<report focus="yes"/>
-
-				<domain name="pointer" layer="1" label="no" content="client" origin="pointer" />
-				<domain name="default" layer="2" label="no" content="client" focus="click" hover="always" />
-
-				<policy label_prefix="pointer" domain="pointer"/>
-				<default-policy domain="default"/>
-			</config>
-		</start>
-
-		<start name="pointer">
-			<resource name="RAM" quantum="1M"/>
-			<route>
-				<service name="Nitpicker"> <child name="nitpicker"/> </service>
-				<any-service> <parent/> <any-child/> </any-service>
-			</route>
-		</start>
-
-		<start name="report_rom">
-			<resource name="RAM" quantum="4M"/>
-			<provides>
-				<service name="Report"/>
-				<service name="ROM"/>
-			</provides>
-			<config>
-				<policy label="layouter -> window_list"       report="wm -> window_list"/>
-				<policy label="layouter -> focus_request"     report="wm -> focus_request"/>
-				<policy label="decorator -> window_layout"    report="layouter -> window_layout"/>
-				<policy label="wm -> resize_request"          report="layouter -> resize_request"/>
-				<policy label="decorator -> pointer"          report="wm -> pointer"/>
-				<policy label="layouter -> hover"             report="decorator -> hover"/>
-				<policy label="wm -> focus"                   report="layouter -> focus"/>
-				<policy label="clipboard -> focus"            report="nitpicker -> focus"/>
-				<policy label="layouter -> decorator_margins" report="decorator -> decorator_margins"/>
-			</config>
-		</start>
-
-		<start name="wm" caps="150">
-			<resource name="RAM" quantum="12M"/>
-			<provides>
-				<service name="Nitpicker"/>
-			</provides>
-			<config>
-				<policy label_prefix="decorator" role="decorator"/>
-				<policy label_prefix="layouter"  role="layouter"/>
-			</config>
-			<route>
-				<service name="ROM" label="focus">          <child name="report_rom"/> </service>
-				<service name="ROM" label="resize_request"> <child name="report_rom"/> </service>
-				<service name="Report">                     <child name="report_rom"/> </service>
-				<any-service>
-					<child name="nitpicker"/> <parent/> <any-child/>
-				</any-service>
-			</route>
-		</start>
-
-		<start name="layouter">
-			<binary name="floating_window_layouter"/>
-			<resource name="RAM" quantum="4M"/>
-			<route>
-				<service name="ROM" label="window_list">       <child name="report_rom"/> </service>
-				<service name="ROM" label="focus_request">     <child name="report_rom"/> </service>
-				<service name="ROM" label="hover">             <child name="report_rom"/> </service>
-				<service name="ROM" label="decorator_margins"> <child name="report_rom"/> </service>
-				<service name="Report">                        <child name="report_rom"/> </service>
-				<any-service>
-					<child name="wm"/> <parent/> <any-child/>
-				</any-service>
-			</route>
-		</start>
-
-		<start name="decorator">
-			<binary name="decorator"/>
-			<resource name="RAM" quantum="12M"/>
-			<route>
-				<service name="ROM" label="window_layout"> <child name="report_rom"/> </service>
-				<service name="ROM" label="pointer">       <child name="report_rom"/> </service>
-				<service name="Report">                    <child name="report_rom"/> </service>
-				<any-service>
-					<child name="wm"/> <parent/> <any-child/>
-				</any-service>
-			</route>
-		</start>
-	}
-
-	return $start_nodes
-}
 
 append config {
 <config>
@@ -485,7 +41,14 @@ append config {
 append config [qt5_start_nodes feature]
 
 append config {
-	<start name="onscreenkeyboard" caps="300">
+        <start name="timer">
+            <resource name="RAM" quantum="1M"/>
+            <provides>
+                <service name="Timer"/>
+            </provides>
+        </start>
+
+        <start name="onscreenkeyboard" caps="300">
 		<resource name="RAM" quantum="80M"/>
 		<config>
 			<vfs>
@@ -503,6 +66,14 @@ append config {
                     <service name="Input"/>
                 </provides>
 	</start>
+        
+        <start name="test-input">
+            <resource name="RAM" quantum="1M"/>
+            <route>
+                <service name="Input"><child name="onscreenkeyboard"/></service>
+		<any-service> <parent /> <any-child/> </any-service>
+            </route>
+        </start>
 </config>
 }
 
@@ -514,53 +85,6 @@ install_config $config
 
 # The QtQuick plugin currently needs to be provided both in the file system
 # (for Qt) and as ROM module (for 'dlopen()').
-
-proc drivers_boot_modules { feature_arg } {
-
-	upvar $feature_arg feature
-
-	set boot_modules { }
-
-	# This function appends to the global 'boot_modules' variable, not to the
-	# local version defined above.
-	append_platform_drv_boot_modules
-
-	lappend_if [use_audio_drv feature]    boot_modules [audio_drv_binary]
-	lappend_if [use_fb_drv feature]       boot_modules fb_drv
-	lappend_if [use_fb_sdl feature]       boot_modules fb_sdl
-	lappend_if [use_gpio_drv feature]     boot_modules [gpio_drv]
-	lappend_if [use_input_filter feature] boot_modules input_filter
-	lappend_if [use_input_filter feature] boot_modules [language_chargen].chargen
-	lappend_if [use_nic_drv feature]      boot_modules [nic_drv_binary]
-	lappend_if [use_ps2_drv feature]      boot_modules ps2_drv
-	lappend_if [use_timer feature]        boot_modules timer
-	lappend_if [use_usb_drv feature]      boot_modules usb_drv
-
-	return $boot_modules
-}
-
-proc qt5_boot_modules { feature_arg } {
-
-	upvar $feature_arg feature
-
-	set boot_modules {
-		core
-		init
-	}
-
-	append boot_modules [drivers_boot_modules feature]
-
-	append boot_modules {
-		nitpicker
-		report_rom
-		floating_window_layouter
-		decorator
-		wm
-		pointer
-	}
-
-	return $boot_modules
-}
 
 append boot_modules [qt5_boot_modules feature]
 
@@ -599,7 +123,8 @@ append boot_modules {
         qt5_qquicklayoutsplugin.lib.so
         qt5_qtvirtualkeyboardplugin.lib.so
         qt5_qtvirtualkeyboardstylesplugin.lib.so
-	qt5_windowplugin.lib.so
+        qt5_windowplugin.lib.so
+        test-input
 }
 
 build_boot_image $boot_modules
