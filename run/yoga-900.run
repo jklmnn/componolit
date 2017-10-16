@@ -26,7 +26,6 @@ set build_components {
 	lib/vfs/jitterentropy
 	server/tcp_terminal
 	server/http_blk
-	server/rump_fs
 }
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
@@ -56,6 +55,7 @@ append config {
 		<service name="Platform">  <child name="platform_drv"/> </service>
 		<any-service> <parent/> </any-service>
 	</default-route>
+        <default caps="250"/>
 
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
@@ -90,6 +90,13 @@ append_if [have_spec ps2] config {
 	<alias name="input_drv" child="ps2_drv"/>}
 
 append config {
+        
+        <start name="fb_boot_drv">
+            <resource name="RAM" quantum="16M"/>
+            <provides>
+                <service name="Framebuffer"/>
+            </provides>
+        </start>
 	<start name="nitpicker">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Nitpicker"/></provides>
@@ -101,7 +108,7 @@ append config {
 		</config>
 		<route>
 			<service name="Input">       <child name="input_drv"/> </service>
-			<service name="Framebuffer"> <child name="fb_drv"/>    </service>
+			<service name="Framebuffer"> <child name="fb_boot_drv"/>    </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
@@ -112,7 +119,7 @@ append config {
 
 	<start name="terminal_fb">
 		<binary name="nit_fb"/>
-		<resource name="RAM" quantum="4M"/>
+		<resource name="RAM" quantum="16M"/>
 		<provides>
 			<service name="Framebuffer"/>
 			<service name="Input"/>
@@ -144,6 +151,7 @@ append config {
 		<provides> <service name="Rtc"/> </provides>
 		<route>
 			<service name="LOG">       <child name="terminal_log"/> </service>
+                        <service name="ROM"><parent/></service>
 			<any-service> <any-child/> <parent/></any-service>
 		</route>
 	</start>
@@ -154,66 +162,8 @@ append config {
 		<config> <rom/> </config>
 		<route>
 			<service name="LOG">       <child name="terminal_log"/> </service>
+                        <service name="ROM"><parent/></service>
 			<any-service> <any-child/> <parent/></any-service>
-		</route>
-	</start>
-
-	<start name="config_fs">
-		<binary name="ram_fs"/>
-		<resource name="RAM" quantum="4M"/>
-		<provides> <service name="File_system"/> </provides>
-		<config>
-			<policy label="config_rom" root="/"/>
-			<policy label="wifi_drv -> config" root="/" writeable="yes"/>
-			<content>
-				<inline name="wlan_configuration">}
-append config "
-					<selected_network ssid=\"$::env(GENODE_WIFI_SSID)\" protection=\"WPA-PSK\" psk=\"$::env(GENODE_WIFI_PSK)\"/>"
-append config {
-				</inline>
-				<inline name="wpa_supplicant.conf"></inline>
-			</content>
-		</config>
-		<route>
-			<service name="LOG">       <child name="terminal_log"/> </service>
-			<any-service> <any-child/> <parent/></any-service>
-		</route>
-	</start>
-
-	<start name="config_rom">
-		<binary name="fs_rom"/>
-		<resource name="RAM" quantum="4M"/>
-		<provides><service name="ROM"/></provides>
-		<route>
-			<service name="File_system"> <child name="config_fs" /> </service>
-			<service name="LOG">       <child name="terminal_log"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-
-	<start name="wifi_drv">
-		<resource name="RAM" quantum="32M"/>
-		<provides> <service name="Nic"/> </provides>
-		<config ld_verbose="yes" verbose="no">
-			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc">
-				<vfs>
-					<dir name="dev"> <log/> <rtc/>
-						<jitterentropy name="random"/>
-						<jitterentropy name="urandom"/>
-					</dir>
-					<dir name="config"> <fs label="config"/> </dir>
-				</vfs>
-			</libc>
-		</config>
-		<route>
-			<service name="Rtc"> <any-child /> </service>
-			<service name="File_system"> <child name="config_fs"/> </service>
-			<service name="Report"> <child name="report_rom"/> </service>
-			<service name="ROM"> <if-arg key="label" value="wlan_configuration" /> <child name="config_rom" /> </service>
-<!--
-			<service name="LOG">       <child name="terminal_log"/> </service>
--->
-			<any-service> <parent/> <any-child /> </any-service>
 		</route>
 	</start>
 
@@ -258,55 +208,6 @@ append config {
 		</route>
 	</start>
 
-    <start name="rump_fs">
-        <resource name="RAM" quantum="8M" />
-        <provides>
-			<service name="File_system"/>
-		</provides>
-        <config fs="cd9660">
-			<policy label="iso_rom" root="/" writeable="no"/>
-		</config>
-		<route>
-			<service name="LOG"> <child name="terminal_log"/> </service>
-			<service name="Block"> <child name="http_blk"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-    </start>
-
-    <start name="iso_rom">
-    	<binary name="fs_rom"/>
-        <resource name="RAM" quantum="4M"/>
-        <provides><service name="ROM"/></provides>
-		<route>
-			<service name="LOG"> <child name="terminal_log"/> </service>
-			<service name="File_system"> <child name="rump_fs"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-    </start>
-
-	<start name="subinit">
-		<binary name="init"/>
-		<resource name="RAM" quantum="24M"/>
-
-		<configfile name="config"/>
-
-		<parent-provides>
-			<service name="RAM"/>
-			<service name="IRQ"/>
-			<service name="IO_MEM"/>
-			<service name="IO_PORT"/>
-			<service name="PD"/>
-			<service name="RM"/>
-			<service name="CPU"/>
-		</parent-provides>
-
-		<default-route>
-			<service name="LOG"> <child name="terminal_log"/> </service>
-			<service name="ROM"> <child name="iso_rom"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</default-route>
-	</start>
-
 </config>
 }
 
@@ -345,9 +246,7 @@ set boot_modules {
 	libc_pipe.lib.so
 	tcp_terminal
 	http_blk
-	rump_fs
-	rump.lib.so
-	rump_fs.lib.so
+        fb_boot_drv
 }
 
 append boot_modules $firmware_modules
