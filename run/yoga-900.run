@@ -231,7 +231,7 @@ append config {
 	</start>
 -->
         <start name="gslx_i2c_drv" caps="10000">
-            <resource name="RAM" quantum="4M"/>
+            <resource name="RAM" quantum="64M"/>
             <config>
                 <firmware name="trekstor_surftab7new_silead_ts.fw"/>
             </config>
@@ -243,7 +243,7 @@ append config {
 
     <start name="acpi_state">
         <binary name="report_rom"/>
-        <resource name="RAM" quantum="2M"/>
+        <resource name="RAM" quantum="32M"/>
         <provides>
             <service name="ROM"/>
             <service name="Report"/>
