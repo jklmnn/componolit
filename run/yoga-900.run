@@ -7,6 +7,8 @@
 set build_components {
 	core
 	init
+        drivers/ahci
+        test/blk/cli
 	drivers/framebuffer
 	drivers/input
 	drivers/timer
@@ -194,7 +196,7 @@ append config {
 		</route>
 	</start>
 -->
-
+<!--
 	<start name="http_blk">
 		<resource name="RAM" quantum="2M" />
 		<provides><service name="Block"/></provides>
@@ -205,6 +207,40 @@ append config {
 			<service name="ROM"> <parent/> </service>
 			<service name="LOG"> <child name="terminal_log"/> </service>
 			<any-service> <any-child/> <parent/> </any-service>
+		</route>
+	</start>
+-->
+	<start name="ahci_report_rom">
+		<binary name="report_rom"/>
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Report"/> <service name="ROM"/> </provides>
+		<config verbose="yes"/>
+		<route>
+			<service name="LOG">       <child name="terminal_log"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+	<start name="ahci_drv">
+		<resource name="RAM" quantum="10M" />
+		<provides><service name="Block" /></provides>
+		<config atapi="yes">
+			<report ports="yes"/>
+			<policy label_prefix="test-ahci" device="0" writeable="no" />
+		</config>
+		<route>
+			<service name="LOG">       <child name="terminal_log"/> </service>
+			<service name="Report"> <child name="ahci_report_rom"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+	<start name="test-ahci">
+		<binary name="test-blk-cli" />
+		<resource name="RAM" quantum="50M" />
+		<config test_size="100M"></config>
+		<route>
+			<service name="LOG">       <child name="terminal_log"/> </service>
+			<service name="Block"><child name="ahci_drv"/></service>
+			<any-service> <parent/> <any-child /> </any-service>
 		</route>
 	</start>
 
@@ -247,6 +283,8 @@ set boot_modules {
 	tcp_terminal
 	http_blk
         fb_boot_drv
+        ahci_drv
+        test-blk-cli
 }
 
 append boot_modules $firmware_modules
