@@ -4,6 +4,8 @@
 # \date   2016-09-17
 #
 
+assert_spec acpi
+
 set build_components {
 	core
 	init
@@ -26,9 +28,29 @@ set build_components {
 	lib/vfs/jitterentropy
 	server/tcp_terminal
 	server/http_blk
+        server/dynamic_rom
 }
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
+
+proc platform_drv_policy {} {
+    return {
+        <policy label_prefix="gslx_i2c_drv"> <device name="GSLX680"/> </policy>
+	<policy label_prefix="acpica"> <pci class="ALL"/> </policy>
+    }
+}
+
+proc platform_drv_add_routing {} {
+	return {
+			<service name="ROM" label="system"> <child name="dynamic_rom"/> </service>
+			<service name="ROM" label="acpi_ready"> <child name="acpi_state"/> </service>}
+}
+
+proc platform_drv_config_config {} {
+	return {
+		<config acpi="yes" system="yes">}
+}
+
 append_platform_drv_build_components
 
 build $build_components
@@ -83,11 +105,11 @@ append_if [have_spec framebuffer] config {
 	</start>}
 
 append_if [have_spec ps2] config {
-	<start name="ps2_drv">
+	<start name="dummy_input_drv">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Input"/></provides>
 	</start>
-	<alias name="input_drv" child="ps2_drv"/>}
+	<alias name="input_drv" child="dummy_input_drv"/>}
 
 append config {
         
@@ -194,7 +216,7 @@ append config {
 		</route>
 	</start>
 -->
-
+<!--
 	<start name="http_blk">
 		<resource name="RAM" quantum="2M" />
 		<provides><service name="Block"/></provides>
@@ -207,14 +229,52 @@ append config {
 			<any-service> <any-child/> <parent/> </any-service>
 		</route>
 	</start>
+-->
+        <start name="gslx_i2c_drv" caps="10000">
+            <resource name="RAM" quantum="4M"/>
+            <config>
+                <firmware name="trekstor_surftab7new_silead_ts.fw"/>
+            </config>
+            <route>
+	        <service name="LOG"><child name="terminal_log"/></service>
+	        <any-service><parent/><any-child/></any-service>
+            </route>
+        </start>
 
+    <start name="acpi_state">
+        <binary name="report_rom"/>
+        <resource name="RAM" quantum="2M"/>
+        <provides>
+            <service name="ROM"/>
+            <service name="Report"/>
+        </provides>
+        <config verbose="yes">
+            <policy label="platform_drv -> acpi_ready" report="acpica -> acpi_ready"/>
+        </config>
+        <route>
+            <any-service> <parent/> </any-service>
+        </route>
+    </start>
+
+            <start name="dynamic_rom">
+                    <resource name="RAM" quantum="4M"/>
+                    <provides><service name="ROM"/></provides>
+                    <config verbose="yes">
+                            <rom name="system">
+					<inline description="set system state to 'normal'">
+						<system state="normal"/>
+					</inline>
+					<sleep milliseconds="1000" />
+                            </rom>
+                    </config>
+            </start>
 </config>
 }
 
 install_config $config
 
 set firmware_modules {
-	iwlwifi-8000C-16.ucode
+        trekstor_surftab7new_silead_ts.fw
 }
 
 # generic modules
@@ -233,20 +293,18 @@ set boot_modules {
 	ram_fs
 	report_rom
 	fs_rom
-	vfs_jitterentropy.lib.so
 	ld.lib.so
 	libc.lib.so
 	libcrypto.lib.so
 	libssl.lib.so
-	wpa_driver_nl80211.lib.so
-	wpa_supplicant.lib.so
-	wifi.lib.so
-	wifi_drv
 	lwip.lib.so
 	libc_pipe.lib.so
 	tcp_terminal
 	http_blk
         fb_boot_drv
+        gslx_i2c_drv
+        dynamic_rom
+        dummy_input_drv
 }
 
 append boot_modules $firmware_modules
