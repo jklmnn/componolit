@@ -7,6 +7,8 @@
 #include <QGuiApplication>
 #include <QQmlContext>
 
+#include <base/thread.h>
+
 #include "oskinputmethod.h"
 #include "oskinputsession.h"
 
@@ -35,23 +37,42 @@ struct Osk::Main {
 
     Osk::Input_Method _oim { 0, &_vinput }; 
 
+    struct Main_thread : Genode::Thread {
+        
+        Genode::Env &_env;
+
+        Osk::Input_Method _oim;
+
+        Main_thread(Genode::Env &env, Osk::Virtual_Input *vinput) :
+            Thread(env, "osk", 0x2000),
+            _env(env),
+            _oim(0, vinput)
+        { }
+
+        void entry()
+        {
+            Libc::with_libc([&]{
+                initialize_qt_core(_env);
+                initialize_qt_gui(_env);
+                int argc = 1;
+                char *argv[] = {"osk"};
+                qputenv("QT_IM_MODULE", "qtvirtualkeyboard");
+                QGuiApplication app(argc, argv);
+                QQuickView view(QString("qrc:/main.qml"));
+                QQmlContext *context = view.rootContext();
+                context->setContextProperty(QStringLiteral("OskInputMethod"), &_oim);
+                view.setResizeMode(QQuickView::SizeRootObjectToView);
+                view.show();
+                return app.exec();
+                return 0;
+            });
+        }
+    } T { _env, &_vinput };
+
     Main(Genode::Env &env) : _env(env)
     {
+        T.start();
         env.parent().announce(env.ep().manage(_root));
-        Libc::with_libc([&]{
-            initialize_qt_core(env);
-            initialize_qt_gui(env);
-            int argc = 1;
-            char *argv[] = {"osk"};
-            qputenv("QT_IM_MODULE", "qtvirtualkeyboard");
-            QGuiApplication app(argc, argv);
-            QQuickView view(QString("qrc:/main.qml"));
-            QQmlContext *context = view.rootContext();
-            context->setContextProperty(QStringLiteral("OskInputMethod"), &_oim);
-            view.setResizeMode(QQuickView::SizeRootObjectToView);
-            view.show();
-            return app.exec();
-        });
     };
 };
 
