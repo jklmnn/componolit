@@ -29,26 +29,15 @@ set build_components {
 	server/tcp_terminal
 	server/http_blk
         server/dynamic_rom
+        test/pci
 }
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
 
 proc platform_drv_policy {} {
     return {
-        <policy label_prefix="gslx_i2c_drv"> <device name="GSLX680"/> </policy>
-	<policy label_prefix="acpica"> <pci class="ALL"/> </policy>
+        <policy label_prefix="test-pci"><pci class="ALL"/> </policy>
     }
-}
-
-proc platform_drv_add_routing {} {
-	return {
-			<service name="ROM" label="system"> <child name="dynamic_rom"/> </service>
-			<service name="ROM" label="acpi_ready"> <child name="acpi_state"/> </service>}
-}
-
-proc platform_drv_config_config {} {
-	return {
-		<config acpi="yes" system="yes">}
 }
 
 append_platform_drv_build_components
@@ -230,6 +219,7 @@ append config {
 		</route>
 	</start>
 -->
+<!--
         <start name="gslx_i2c_drv" caps="10000">
             <resource name="RAM" quantum="64M"/>
             <config>
@@ -268,6 +258,14 @@ append config {
                             </rom>
                     </config>
             </start>
+-->
+            <start name="test-pci">
+                <resource name="RAM" quantum="2M"/>
+                <route>
+	            <service name="LOG"><child name="terminal_log"/></service>
+    	            <any-service><parent/><any-child/></any-service>
+                </route>
+            </start>
 </config>
 }
 
@@ -305,6 +303,7 @@ set boot_modules {
         gslx_i2c_drv
         dynamic_rom
         dummy_input_drv
+        test-pci
 }
 
 append boot_modules $firmware_modules
