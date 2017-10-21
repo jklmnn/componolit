@@ -17,12 +17,18 @@ Item {
             focus: true
         }
 */
+           
+        MyInputMethod {
+            id: myinputmethod
+        }
+        
         InputPanel {
             id: inputPanel
             z: 99
             y: parent.height - height
             anchors.left: parent.left
             anchors.right: parent.right
+            keyboard.customInputMethod: myinputmethod
         }
     }
 }
