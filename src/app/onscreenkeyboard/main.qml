@@ -2,7 +2,7 @@ import QtQuick 2.0
 import QtQuick.Window 2.2
 import QtQuick.VirtualKeyboard 2.1
 
-import "."
+import com.componolit.onscreenkeyboard 1.0
 
 Item {
     width: Screen.width
@@ -17,12 +17,18 @@ Item {
             focus: true
         }
 */
+
+        OskInputMethod {
+            id: oskInputMethod
+        }
+
         InputPanel {
             id: inputPanel
             z: 99
             y: parent.height - height
             anchors.left: parent.left
             anchors.right: parent.right
+            keyboard.customInputMethod: oskInputMethod
         }
     }
 }
