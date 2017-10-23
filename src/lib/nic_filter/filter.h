@@ -52,6 +52,11 @@ class Nic_filter::Filter
                 Nic::Mac_address mac_address() override;
                 bool link_state() override;
                 void _handle_packet_stream() override;
+
+                Nic::Packet_descriptor get_client_buffer(char**, Genode::size_t);
+                Nic::Packet_descriptor get_server_buffer(char**, Genode::size_t);
+                void to_client(Nic::Packet_descriptor);
+                void to_server(Nic::Packet_descriptor);
         };
 
         friend class Root;
@@ -75,8 +80,8 @@ class Nic_filter::Filter
 
         void update_buf_size(Genode::size_t, Genode::size_t);
 
-        virtual void up_filter(char *, Genode::size_t) = 0;
-        virtual void down_filter(char*, Genode::size_t) = 0;
+        virtual void from_client(const char *, Genode::size_t) = 0;
+        virtual void from_server(const char *, Genode::size_t) = 0;
 
     public:
         Filter(Genode::Env &);

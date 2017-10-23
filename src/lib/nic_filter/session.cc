@@ -16,6 +16,7 @@ Nic_filter::Filter::Session::Session(
     _filter(filter)
 {
     _filter->update_buf_size(rx_buf_size, tx_buf_size);
+    _nic.rx_channel()->sigh_packet_avail(_nic_handler);
 }
 
 Nic::Mac_address Nic_filter::Filter::Session::mac_address()
@@ -31,10 +32,34 @@ bool Nic_filter::Filter::Session::link_state()
 
 void Nic_filter::Filter::Session::_handle_packet_stream()
 {
-    
+    while(_tx.sink()->packet_avail()){
+        Nic::Packet_descriptor packet = _tx.sink()->get_packet();
+        _filter->from_server(_tx.sink()->packet_content(packet), packet.size());
+        _tx.sink()->acknowledge_packet(packet);
+    }
 }
 
 void Nic_filter::Filter::Session::_handle_nic()
 {
-
+    if(_nic.rx()->packet_avail()){
+        Nic::Packet_descriptor packet = _nic.rx()->get_packet();
+        _filter->from_client(_nic.rx()->packet_content(packet), packet.size());
+        _nic.rx()->acknowledge_packet(packet);
+    }
 }
+
+Nic::Packet_descriptor Nic_filter::Filter::Session::get_client_buffer(char **buffer, Genode::size_t size)
+{
+    Nic::Packet_descriptor packet = _nic.tx()->alloc_packet(size);
+    *buffer = _nic.tx()->packet_content(packet);
+    return packet;
+}
+
+Nic::Packet_descriptor Nic_filter::Filter::Session::get_server_buffer(char **buffer, Genode::size_t size)
+{
+    Nic::Packet_descriptor packet = _rx.source()->alloc_packet(size);
+    *buffer = _rx.source()->packet_content(packet);
+    return packet;
+}
+
+
