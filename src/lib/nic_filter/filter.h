@@ -20,23 +20,11 @@ class Nic_filter::Filter
 {
     private:
 
+        Genode::size_t _rx_buf = 0;
+        Genode::size_t _tx_buf = 0;
+
         friend class Session;
         class Session : public Nic::Session_component
-        {
-            public:
-                Session (
-                        Genode::size_t tx_buf_size,
-                        Genode::size_t rx_buf_size,
-                        Genode::Allocator &rx_block_md_alloc,
-                        Genode::Env &env);
-            
-                Nic::Mac_address mac_address() override;
-                bool link_state() override;
-                void _handle_packet_stream() override;
-        };
-
-        friend class Client;
-        class Client
         {
             private:
                 Genode::Env &_env;
@@ -45,20 +33,25 @@ class Nic_filter::Filter
 
                 Genode::Allocator_avl _tx_block_alloc;
 
-                enum { BUF_SIZE = Nic::Packet_allocator::DEFAULT_PACKET_SIZE * 128 };
-
                 Nic::Connection _nic;
 
                 void _handle_nic();
 
-                Genode::Signal_handler<Client> _nic_handler {
-                    _env.ep(),
-                    *this,
-                    &Client::_handle_nic
-                };
+                Genode::Signal_handler<Session> _nic_handler;
+
+                Filter *_filter;
 
             public:
-                Client(Genode::Env &);
+                Session (
+                        Genode::size_t,
+                        Genode::size_t,
+                        Genode::Allocator &,
+                        Genode::Env &,
+                        Filter*);
+            
+                Nic::Mac_address mac_address() override;
+                bool link_state() override;
+                void _handle_packet_stream() override;
         };
 
         friend class Root;
@@ -66,12 +59,13 @@ class Nic_filter::Filter
         {
             private:
                 Genode::Env &_env;
+                Filter *_filter;
             
             protected:
                 Session *_create_session(char const *);
 
             public:
-                Root(Genode::Env &, Genode::Allocator &);
+                Root(Genode::Env &, Genode::Allocator &, Filter*);
 
         };
        
@@ -79,10 +73,10 @@ class Nic_filter::Filter
 
         Root _root;
 
-        Client _client;
+        void update_buf_size(Genode::size_t, Genode::size_t);
 
-        virtual void up_filter() = 0;
-        virtual void down_filter() = 0;
+        virtual void up_filter(char *, Genode::size_t) = 0;
+        virtual void down_filter(char*, Genode::size_t) = 0;
 
     public:
         Filter(Genode::Env &);

@@ -2,10 +2,12 @@
 #include <filter.h>
 
 Nic_filter::Filter::Root::Root(Genode::Env &env,
-     Genode::Allocator &md_alloc)
+     Genode::Allocator &md_alloc,
+     Nic_filter::Filter *filter)
 :
         Genode::Root_component<Nic_filter::Filter::Session>(&env.ep().rpc_ep(), &md_alloc),
-        _env(env)
+        _env(env),
+        _filter(filter)
 {}
 
 Nic_filter::Filter::Session *Nic_filter::Filter::Root::_create_session(char const *args)
@@ -31,5 +33,5 @@ Nic_filter::Filter::Session *Nic_filter::Filter::Root::_create_session(char cons
         }
 
         return new (md_alloc()) Nic_filter::Filter::Session(tx_buf_size, rx_buf_size,
-                                                  *md_alloc(), _env);
+                                                  *md_alloc(), _env, _filter);
 }
