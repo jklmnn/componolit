@@ -1,0 +1,10 @@
+This components sits inbetween a log client and a log server. It offers a LOG
+session immediately after start, even before the upstream log session could be
+created.
+
+The rational is devices where no log session can be provided by core (VGA) or
+some basic driver (serial). In these cases it makes sense to provided a log
+session through a more complex scenario, e.g. using network logging or a
+framebuffer terminal. To enable components required to provided this setup to
+log output, buffered_log saves log messages until after its log session became
+available.
