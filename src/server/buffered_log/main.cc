@@ -28,16 +28,15 @@ namespace Genode {
 
 		private:
 
-			char _label[LABEL_LEN];
-			Log_connection &_log;
+			Log_connection _log;
 
 		public:
 
 			/**
 			 * Constructor
 			 */
-			Bufferedlog_component(const char *label, Log_connection &log)
-			: _log(log) { snprintf(_label, LABEL_LEN, "%s: ", label); }
+			Bufferedlog_component(const char *label, Genode::Env &env)
+			: _log(env, Session_label(label)) { }
 
 			/*****************
 			 ** Log session **
@@ -65,7 +64,7 @@ namespace Genode {
 	{
 		private:
 
-			Log_connection _log;
+			Genode::Env &_env;
 
 		protected:
 
@@ -79,7 +78,7 @@ namespace Genode {
 				Arg label_arg = Arg_string::find_arg(args, "label");
 				label_arg.string(label_buf, sizeof(label_buf), "");
 
-				return new (md_alloc()) Bufferedlog_component(label_buf, _log);
+				return new (md_alloc()) Bufferedlog_component(label_buf, _env);
 			}
 
 		public:
@@ -91,8 +90,7 @@ namespace Genode {
 			 * \param md_alloc    meta-data allocator to be used by root component
 			 */
 			Bufferedlog_root(Genode::Env &env, Allocator &md_alloc)
-			: Root_component<Bufferedlog_component>(env.ep(), md_alloc),
-			  _log(env, "log") { }
+			: _env(env), Root_component<Bufferedlog_component>(env.ep(), md_alloc) { }
 	};
 }
 
