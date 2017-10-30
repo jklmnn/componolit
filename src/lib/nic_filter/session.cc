@@ -32,23 +32,37 @@ bool Nic_filter::Filter::Session::link_state()
 
 void Nic_filter::Filter::Session::_handle_packet_stream()
 {
-    while(_rx.source()->ack_avail())
-        _rx.source()->release_packet(_rx.source()->get_acked_packet());
+    while(_rx.source()->ack_avail()){
+        Nic::Packet_descriptor packet = _rx.source()->get_acked_packet();
+        _rx.source()->release_packet(packet);
+    }
     while(_tx.sink()->packet_avail()){
-        Nic::Packet_descriptor packet = _tx.sink()->get_packet();
-        _filter->from_server(_tx.sink()->packet_content(packet), packet.size(), packet.offset(), this);
-        _tx.sink()->acknowledge_packet(packet);
+        try{
+            Nic::Packet_descriptor packet = _tx.sink()->get_packet();
+            _filter->from_server(_tx.sink()->packet_content(packet), packet.size(), packet.offset(), this);
+            _tx.sink()->acknowledge_packet(packet);
+        } catch ( ... ) {
+            Genode::warning(__func__, " dropped packet");
+            break;
+        }
     }
 }
 
 void Nic_filter::Filter::Session::_handle_nic()
 {
-    while(_nic.tx()->ack_avail())
-        _nic.tx()->release_packet(_nic.tx()->get_acked_packet());
+    while(_nic.tx()->ack_avail()){
+        Nic::Packet_descriptor packet = _nic.tx()->get_acked_packet();
+        _nic.tx()->release_packet(packet);
+    }
     while(_nic.rx()->packet_avail()){
-        Nic::Packet_descriptor packet = _nic.rx()->get_packet();
-        _filter->from_client(_nic.rx()->packet_content(packet), packet.size(), packet.offset(), this);
-        _nic.rx()->acknowledge_packet(packet);
+        try {
+            Nic::Packet_descriptor packet = _nic.rx()->get_packet();
+            _filter->from_client(_nic.rx()->packet_content(packet), packet.size(), packet.offset(), this);
+            _nic.rx()->acknowledge_packet(packet);
+        } catch ( ... ) {
+            Genode::warning(__func__, " dropped packet");
+            break;
+        }
     }
 }
 
