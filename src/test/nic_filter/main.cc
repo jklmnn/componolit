@@ -3,6 +3,8 @@
 #include <base/component.h>
 #include <filter.h>
 
+#include <timer_session/connection.h>
+
 namespace Nic_filter_test {
     class Filter;
     struct Main;
@@ -12,10 +14,12 @@ class Nic_filter_test::Filter : Nic_filter::Filter
 {
     private:
 
+        Timer::Connection _timer;
+
         void from_client(const char *buffer, Genode::size_t size, Genode::off_t offset,
                 Nic_filter::Filter::Session *session) override
         {
-//            Genode::log(__func__, ": ", buffer[0]);
+            _timer.usleep(10); //XXX: only needed to fix the roundtrip test of test-nic_loopback
             char *sbuf = 0;
             Nic::Packet_descriptor packet = session->get_server_buffer(&sbuf, size, offset);
             Genode::memcpy(sbuf, buffer, size);
@@ -25,7 +29,7 @@ class Nic_filter_test::Filter : Nic_filter::Filter
         void from_server(const char *buffer, Genode::size_t size, Genode::off_t offset,
                 Nic_filter::Filter::Session *session) override
         {
-//            Genode::log(__func__, ": ", buffer[0]);
+            _timer.usleep(10); //XXX: only needed to fix the roundtrip test of test-nic_loopback
             char *cbuf = 0;
             Nic::Packet_descriptor packet = session->get_client_buffer(&cbuf, size, offset);
             Genode::memcpy(cbuf, buffer, size);
@@ -33,7 +37,7 @@ class Nic_filter_test::Filter : Nic_filter::Filter
         }
 
     public:
-        Filter(Genode::Env &env) : Nic_filter::Filter(env)
+        Filter(Genode::Env &env) : Nic_filter::Filter(env), _timer(env)
     { }
 };
 
