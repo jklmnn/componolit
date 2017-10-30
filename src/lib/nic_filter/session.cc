@@ -32,34 +32,52 @@ bool Nic_filter::Filter::Session::link_state()
 
 void Nic_filter::Filter::Session::_handle_packet_stream()
 {
+    while(_rx.source()->ack_avail())
+        _rx.source()->release_packet(_rx.source()->get_acked_packet());
     while(_tx.sink()->packet_avail()){
         Nic::Packet_descriptor packet = _tx.sink()->get_packet();
-        _filter->from_server(_tx.sink()->packet_content(packet), packet.size());
+//        Genode::log("session: ", _tx.sink()->packet_content(packet)[0]);
+        _filter->from_server(_tx.sink()->packet_content(packet), packet.size(), packet.offset(), this);
         _tx.sink()->acknowledge_packet(packet);
     }
 }
 
 void Nic_filter::Filter::Session::_handle_nic()
 {
+    if(_nic.tx()->ack_avail())
+        _nic.tx()->release_packet(_nic.tx()->get_acked_packet());
     if(_nic.rx()->packet_avail()){
         Nic::Packet_descriptor packet = _nic.rx()->get_packet();
-        _filter->from_client(_nic.rx()->packet_content(packet), packet.size());
+//        Genode::log("nic: ", _nic.rx()->packet_content(packet)[0]);
+        _filter->from_client(_nic.rx()->packet_content(packet), packet.size(), packet.offset(), this);
         _nic.rx()->acknowledge_packet(packet);
     }
 }
 
-Nic::Packet_descriptor Nic_filter::Filter::Session::get_client_buffer(char **buffer, Genode::size_t size)
+Nic::Packet_descriptor Nic_filter::Filter::Session::get_client_buffer(char **buffer, Genode::size_t size, Genode::off_t offset)
 {
     Nic::Packet_descriptor packet = _nic.tx()->alloc_packet(size);
     *buffer = _nic.tx()->packet_content(packet);
+    packet = Nic::Packet_descriptor(offset, size);
     return packet;
 }
 
-Nic::Packet_descriptor Nic_filter::Filter::Session::get_server_buffer(char **buffer, Genode::size_t size)
+Nic::Packet_descriptor Nic_filter::Filter::Session::get_server_buffer(char **buffer, Genode::size_t size, Genode::off_t offset)
 {
     Nic::Packet_descriptor packet = _rx.source()->alloc_packet(size);
     *buffer = _rx.source()->packet_content(packet);
+    packet = Nic::Packet_descriptor(offset, size);
     return packet;
 }
 
+void Nic_filter::Filter::Session::to_client(Nic::Packet_descriptor packet)
+{
+//    Genode::log(__func__, ": ", _nic.tx()->packet_content(packet)[0]);
+    _nic.tx()->submit_packet(packet);
+}
 
+void Nic_filter::Filter::Session::to_server(Nic::Packet_descriptor packet)
+{
+//    Genode::log(__func__, ": ", _rx.source()->packet_content(packet)[0]);
+    _rx.source()->submit_packet(packet);
+}

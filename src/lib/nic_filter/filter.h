@@ -18,10 +18,7 @@ namespace Nic_filter {
 
 class Nic_filter::Filter
 {
-    private:
-
-        Genode::size_t _rx_buf = 0;
-        Genode::size_t _tx_buf = 0;
+    protected:
 
         friend class Session;
         class Session : public Nic::Session_component
@@ -53,11 +50,16 @@ class Nic_filter::Filter
                 bool link_state() override;
                 void _handle_packet_stream() override;
 
-                Nic::Packet_descriptor get_client_buffer(char**, Genode::size_t);
-                Nic::Packet_descriptor get_server_buffer(char**, Genode::size_t);
+                Nic::Packet_descriptor get_client_buffer(char**, Genode::size_t, Genode::off_t);
+                Nic::Packet_descriptor get_server_buffer(char**, Genode::size_t, Genode::off_t);
                 void to_client(Nic::Packet_descriptor);
                 void to_server(Nic::Packet_descriptor);
         };
+
+    private:
+
+        Genode::size_t _rx_buf = 0;
+        Genode::size_t _tx_buf = 0;
 
         friend class Root;
         class Root : public Genode::Root_component<Session>
@@ -80,8 +82,8 @@ class Nic_filter::Filter
 
         void update_buf_size(Genode::size_t, Genode::size_t);
 
-        virtual void from_client(const char *, Genode::size_t) = 0;
-        virtual void from_server(const char *, Genode::size_t) = 0;
+        virtual void from_client(const char *, Genode::size_t, Genode::off_t, Session*) = 0;
+        virtual void from_server(const char *, Genode::size_t, Genode::off_t, Session*) = 0;
 
     public:
         Filter(Genode::Env &);
