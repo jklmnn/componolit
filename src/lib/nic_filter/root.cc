@@ -12,8 +12,8 @@ Nic_filter::Filter::Root::Root(Genode::Env &env,
 
 Nic_filter::Filter::Session *Nic_filter::Filter::Root::_create_session(char const *args)
 {
-    Genode::size_t ram_quota   = Genode::Arg_string::find_arg(args, "ram_quota"  ).ulong_value(0);
-    Genode::size_t tx_buf_size = Genode::Arg_string::find_arg(args, "tx_buf_size").ulong_value(0);
+    Genode::size_t ram_quota   = Genode::Arg_string::find_arg(args, "ram_quota"  ).ulong_value(0) * 6;
+    Genode::size_t tx_buf_size = Genode::Arg_string::find_arg(args, "tx_buf_size").ulong_value(0) * 10;
     Genode::size_t rx_buf_size = Genode::Arg_string::find_arg(args, "rx_buf_size").ulong_value(0);
 
         /* deplete ram quota by the memory needed for the session structure */
