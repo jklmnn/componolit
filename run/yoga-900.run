@@ -18,6 +18,7 @@ set build_components {
 	server/report_rom
 	server/terminal
 	server/terminal_log
+	test/blk/bench
 	test/input
 }
 
@@ -59,12 +60,29 @@ append config {
 		<provides><service name="Input"/></provides>
 	</start>
 
+	<start name="usb_devices">
+		<binary name="report_rom"/>
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Report"/> <service name="ROM"/> </provides>
+		<config verbose="yes">
+			<default-policy report="usb_drv -> devices"/>
+		</config>
+	</start>
+
 	<start name="usb_drv" caps="120">
 		<resource name="RAM" quantum="12M"/>
-		<provides><service name="Input"/></provides>
+		<provides>
+			<service name="Input"/>
+			<service name="Block"/>
+		</provides>
 		<config ehci="yes" uhci="yes" ohci="yes" xhci="yes">
+			<storage/>
 			<hid/>
 		</config>
+		<route>
+			<service name="Report"> <child name="usb_devices"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
 	</start>
 
 	<start name="input_merger">
@@ -94,7 +112,8 @@ append config {
 		<provides><service name="Timer"/></provides>
 	</start>
 
-	<start name="report_rom">
+	<start name="nit_report">
+		<binary name="report_rom"/>
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 	</start>
@@ -111,12 +130,17 @@ append config {
 		<route>
 			<service name="Input"> <child name="input_merger" /> </service>
 			<service name="Framebuffer"> <child name="fb_drv" /> </service>
+			<service name="Report"> <child name="nit_report" /> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
 
 	<start name="pointer">
 		<resource name="RAM" quantum="1M"/>
+		<route>
+			<service name="Report"> <child name="nit_report" /> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
 	</start>
 
 	<start name="terminal_fb">
@@ -166,6 +190,21 @@ append config {
 		</route>
 	</start>
 
+	<start name="test-usb">
+		<resource name="RAM" quantum="128M"/>
+		<binary name="test-blk-bench"/>
+		<config>
+			<libc stdout="/dev/log">
+				<vfs> <dir name="dev"> <log/> </dir> </vfs>
+			</libc>
+		</config>
+		<route>
+			<service name="Block"> <child name="usb_drv"/> </service>
+			<service name="LOG"> <child name="terminal_log"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
 </config>}
 
 install_config $config
@@ -182,7 +221,6 @@ set boot_modules {
 	input_merger
 	ld.lib.so
 	nit_fb
-	nitlog
 	nitpicker
 	pointer
 	ps2_drv
@@ -190,9 +228,11 @@ set boot_modules {
 	rtc_drv
 	terminal
 	terminal_log
-	test-input
 	timer
 	usb_drv
+
+	test-blk-bench
+	test-input
 }
 
 append_platform_drv_boot_modules
@@ -200,4 +240,5 @@ append_platform_drv_boot_modules
 build_boot_image $boot_modules
 
 append qemu_args " -m 512 "
+
 run_genode_until forever
