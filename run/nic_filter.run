@@ -7,6 +7,7 @@ set build_components {
 	test/nic_loopback
         test/nic_filter
 	server/nic_loopback
+        drivers/timer
 }
 
 build $build_components
@@ -33,6 +34,12 @@ append config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 	<default caps="100"/>
+        <start name="timer">
+            <resource name="RAM" quantum="1M"/>
+            <provides>
+                <service name="Timer"/>
+            </provides>
+        </start>
 	<start name="nic_loopback">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Nic"/></provides>
@@ -45,13 +52,13 @@ append config {
             </route>
         </start>
         <start name="test-nic_filter">
-            <resource name="RAM" quantum="2M"/>
+            <resource name="RAM" quantum="8M"/>
             <provides>
                 <service name="Nic"/>
             </provides>
             <route>
                 <service name="Nic"><child name="nic_loopback"/></service>
-                <any-service><parent/></any-service>
+                <any-service><any-child/><parent/></any-service>
             </route>
         </start>
 
@@ -69,10 +76,11 @@ set boot_modules {
 	nic_loopback
 	test-nic_loopback
         test-nic_filter
+        timer
 }
 
 build_boot_image $boot_modules
 
-append qemu_args " -nographic -serial mon:stdio  "
+append qemu_args " -nographic -serial mon:stdio  -m 2048"
 
 run_genode_until {child .* exited with exit value 0.*} 60
