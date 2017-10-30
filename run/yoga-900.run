@@ -15,6 +15,7 @@ set build_components {
 	server/input_merger
 	server/nit_fb
 	server/nitpicker
+	server/part_blk
 	server/report_rom
 	server/terminal
 	server/terminal_log
@@ -190,6 +191,35 @@ append config {
 		</route>
 	</start>
 
+	<start name="partition_report">
+		<binary name="report_rom"/>
+		<resource name="RAM" quantum="5M" />
+		<provides>
+			<service name="Report"/>
+			<service name="ROM"/>
+		</provides>
+		<config verbose="yes"/>
+		<route>
+			<service name="LOG"> <child name="terminal_log"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="part_blk">
+		<resource name="RAM" quantum="10M" />
+		<provides><service name="Block" /></provides>
+		<config use_gpt="yes">
+			<report partitions="yes"/>
+			<policy label_prefix="test-usb" partition="2"/>
+		</config>
+		<route>
+			<service name="Block"> <child name="usb_drv"/> </service>
+			<service name="Report"> <child name="partition_report" /> </service>
+			<service name="LOG"> <child name="terminal_log"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
 	<start name="test-usb">
 		<resource name="RAM" quantum="128M"/>
 		<binary name="test-blk-bench"/>
@@ -199,7 +229,7 @@ append config {
 			</libc>
 		</config>
 		<route>
-			<service name="Block"> <child name="usb_drv"/> </service>
+			<service name="Block"> <child name="part_blk"/> </service>
 			<service name="LOG"> <child name="terminal_log"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
@@ -223,6 +253,7 @@ set boot_modules {
 	nit_fb
 	nitpicker
 	pointer
+	part_blk
 	ps2_drv
 	report_rom
 	rtc_drv
