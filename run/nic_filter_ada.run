@@ -1,0 +1,86 @@
+#
+# Build
+#
+
+set build_components {
+	core init
+	test/nic_loopback
+        test/nic_filter_ada
+	server/nic_loopback
+        drivers/timer
+}
+
+build $build_components
+
+create_boot_directory
+
+#
+# Generate config
+#
+
+append config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<default caps="100"/>
+        <start name="timer">
+            <resource name="RAM" quantum="1M"/>
+            <provides>
+                <service name="Timer"/>
+            </provides>
+        </start>
+	<start name="nic_loopback">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Nic"/></provides>
+	</start>
+	<start name="test-nic_loopback">
+            <resource name="RAM" quantum="2M"/>
+            <route>
+                <service name="Nic"><child name="test-nic_filter"/></service>
+                <any-service><parent/></any-service>
+            </route>
+        </start>
+        <start name="test-nic_filter_ada">
+            <resource name="RAM" quantum="8M"/>
+            <provides>
+                <service name="Nic"/>
+            </provides>
+            <route>
+                <service name="Nic"><child name="nic_loopback"/></service>
+                <any-service><any-child/><parent/></any-service>
+            </route>
+        </start>
+
+</config>}
+
+install_config $config
+
+#
+# Boot modules
+#
+
+# generic modules
+set boot_modules {
+	core ld.lib.so init
+	nic_loopback
+	test-nic_loopback
+        test-nic_filter_ada
+        timer
+}
+
+build_boot_image $boot_modules
+
+append qemu_args " -nographic -serial mon:stdio  -m 2048"
+
+run_genode_until {child .* exited with exit value 0.*} 60
