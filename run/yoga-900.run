@@ -17,10 +17,12 @@ set build_components {
 	server/nitpicker
 	server/part_blk
 	server/report_rom
+	server/rump_fs
 	server/terminal
 	server/terminal_log
-	test/blk/bench
+
 	test/input
+	test/libc_vfs
 }
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
@@ -210,7 +212,7 @@ append config {
 		<provides><service name="Block" /></provides>
 		<config use_gpt="yes">
 			<report partitions="yes"/>
-			<policy label_prefix="test-usb" partition="2"/>
+			<policy label_prefix="data_fs" partition="2" writeable="true" />
 		</config>
 		<route>
 			<service name="Block"> <child name="usb_drv"/> </service>
@@ -220,16 +222,33 @@ append config {
 		</route>
 	</start>
 
-	<start name="test-usb">
-		<resource name="RAM" quantum="128M"/>
-		<binary name="test-blk-bench"/>
-		<config>
-			<libc stdout="/dev/log">
-				<vfs> <dir name="dev"> <log/> </dir> </vfs>
-			</libc>
+	<start name="data_fs" caps="200">
+		<binary name="rump_fs"/>
+		<resource name="RAM" quantum="8M" />
+		<provides>
+			<service name="File_system"/>
+		</provides>
+		<config fs="ext2fs">
+			<policy label_prefix="test-libc_vfs" root="/" writeable="yes"/>
 		</config>
 		<route>
 			<service name="Block"> <child name="part_blk"/> </service>
+			<service name="LOG"> <child name="terminal_log"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="test-libc_vfs">
+		<resource name="RAM" quantum="4M"/>
+		<config>
+			<vfs>
+				<dir name="dev"> <log/> </dir>
+				<fs/>
+			</vfs>
+			<libc stdout="/dev/log"/>
+		</config>
+		<route>
+			<service name="File_system"> <child name="data_fs"/> </service>
 			<service name="LOG"> <child name="terminal_log"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
@@ -250,19 +269,23 @@ set boot_modules {
 	init
 	input_merger
 	ld.lib.so
+	libc.lib.so
 	nit_fb
 	nitpicker
-	pointer
 	part_blk
+	pointer
 	ps2_drv
 	report_rom
 	rtc_drv
+	rump_fs
+	rump.lib.so
+	rump_fs.lib.so
 	terminal
 	terminal_log
 	timer
 	usb_drv
 
-	test-blk-bench
+	test-libc_vfs
 	test-input
 }
 
