@@ -47,7 +47,7 @@ append config {
 	<start name="test-nic_loopback">
             <resource name="RAM" quantum="2M"/>
             <route>
-                <service name="Nic"><child name="test-nic_filter"/></service>
+                <service name="Nic"><child name="test-nic_filter_ada"/></service>
                 <any-service><parent/></any-service>
             </route>
         </start>
