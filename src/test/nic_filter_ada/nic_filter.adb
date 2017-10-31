@@ -17,9 +17,16 @@ package body Nic_filter is
         for dest_buf'Address use dest;
         for src_buf'Address use src;
     begin
-        for I in dest_buf'First .. dest_buf'Last loop
-            dest_buf(I) := src_buf(I);
-        end loop;
+        filter_spark(dest_buf, src_buf);
     end;
-    
+
+    procedure filter_spark (
+        dest: out char_array;
+        src: in char_array) with
+        SPARK_Mode
+    is
+    begin
+        dest := src;
+    end;
+
 end Nic_filter;

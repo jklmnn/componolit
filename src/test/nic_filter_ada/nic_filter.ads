@@ -19,4 +19,11 @@ package Nic_filter is
 
     type char_array is array (integer range <>) of Character;
 
+    procedure filter_spark (
+        dest: out char_array;
+        src: in char_array) with
+        SPARK_Mode,
+        Pre => (dest'Length = src'Length),
+        Depends => (dest => src);
+
 end Nic_filter;
