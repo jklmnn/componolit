@@ -5,6 +5,8 @@
 
 #include <timer_session/connection.h>
 
+#include <ada_filter.h>
+
 namespace Nic_filter_test {
     class Filter;
     struct Main;
@@ -22,7 +24,7 @@ class Nic_filter_test::Filter : Nic_filter::Filter
             _timer.usleep(10); //XXX: only needed to fix the roundtrip test of test-nic_loopback
             char *sbuf = 0;
             Nic::Packet_descriptor packet = session->get_server_buffer(&sbuf, size, offset);
-            Genode::memcpy(sbuf, buffer, size);
+            nic_filter__filter(sbuf, buffer, size, size);
             session->to_server(packet);
         }
 
@@ -32,7 +34,7 @@ class Nic_filter_test::Filter : Nic_filter::Filter
             _timer.usleep(10); //XXX: only needed to fix the roundtrip test of test-nic_loopback
             char *cbuf = 0;
             Nic::Packet_descriptor packet = session->get_client_buffer(&cbuf, size, offset);
-            Genode::memcpy(cbuf, buffer, size);
+            nic_filter__filter(cbuf, buffer, size, size);
             session->to_client(packet);
         }
 
@@ -46,7 +48,6 @@ class Nic_filter_test::Filter : Nic_filter::Filter
     }
 };
 
-extern "C" void nic_filter__test(int);
 
 struct Nic_filter_test::Main
 {
