@@ -251,7 +251,7 @@ append config {
 			<service name="Framebuffer"/>
 			<service name="Input"/>
 		</provides>
-		<config xpos="1550" ypos="100" width="1350" height="1600" refresh_rate="25"/>
+		<config xpos="0" ypos="0" width="3200" height="1800" refresh_rate="25"/>
 		<route>
 			<service name="LOG"> <child name="terminal_log"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
@@ -261,13 +261,11 @@ append config {
 	<start name="android" caps="500">
 		<binary name="virtualbox5-nova"/>
 		<resource name="RAM" quantum="2500M"/>
-		<config vbox_file="vm/test.vbox" vm_name="TestVM">
+		<config vbox_file="vm/android.vbox" vm_name="Android">
 			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"/>
 			<vfs>
 				<dir name="dev"> <log/> <rtc/> </dir>
-<!--
 				<dir name="dev"> <terminal/> </dir>
--->
 				<dir name="vm"> <fs/> </dir>
 			</vfs>
 		</config>
