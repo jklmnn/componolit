@@ -5,7 +5,7 @@
 #
 
 set build_components {
-	app/pointer
+	app/vbox_pointer
 	core init
 	drivers/framebuffer
 	drivers/input
@@ -121,8 +121,13 @@ append config {
 
 	<start name="nit_report">
 		<binary name="report_rom"/>
-		<resource name="RAM" quantum="1M"/>
+		<resource name="RAM" quantum="2M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
+		<config verbose="yes">
+			<policy label="vbox_pointer -> hover"               report="nitpicker -> hover"/>
+			<policy label="vbox_pointer -> xray"                report="nitpicker -> xray"/>
+			<policy label="vbox_pointer -> shape1"              report="android -> shape"/>
+		</config>
 	</start>
 
 	<start name="nitpicker">
@@ -131,7 +136,7 @@ append config {
 		<config>
 			<domain name="pointer" layer="1" origin="pointer" content="client" label="no"/>
 			<domain name="default" layer="2" content="client" label="no" focus="click" hover="always" />
-			<policy label_prefix="pointer" domain="pointer"/>
+			<policy label_prefix="vbox_pointer" domain="pointer"/>
 			<default-policy domain="default"/>
 		</config>
 		<route>
@@ -142,11 +147,17 @@ append config {
 		</route>
 	</start>
 
-	<start name="pointer">
-		<resource name="RAM" quantum="1M"/>
+	<start name="vbox_pointer" priority="-1">
+		<resource name="RAM" quantum="2M"/>
+		<config>
+			<policy label="vm_fb" rom="shape1"/>
+		</config>
 		<route>
-			<service name="Report"> <child name="nit_report" /> </service>
-			<any-service> <parent/> <any-child/> </any-service>
+			<service name="Nitpicker"> <child name="nitpicker"/>  </service>
+			<service name="ROM" label="shape1"> <child name="nit_report"/> </service>
+			<service name="ROM" label="hover"> <child name="nit_report"/> </service>
+			<service name="ROM" label="xray"> <child name="nit_report"/> </service>
+			<any-service> <parent/> </any-service>
 		</route>
 	</start>
 
@@ -187,17 +198,6 @@ append config {
 			<any-service> <parent/> <any-child/></any-service>
 		</route>
 	</start>
-
-<!--
-	<start name="test-input">
-		<resource name="RAM" quantum="1M"/>
-		<route>
-			<service name="Input"> <child name="input_merger"/> </service>
-			<service name="LOG"> <child name="terminal_log"/> </service>
-			<any-service> <parent/> <any-child/></any-service>
-		</route>
-	</start>
--->
 
 	<start name="partition_report">
 		<binary name="report_rom"/>
@@ -261,18 +261,14 @@ append config {
 	<start name="android" caps="500">
 		<binary name="virtualbox5-nova"/>
 		<resource name="RAM" quantum="2500M"/>
-		<config vbox_file="test.vbox" vm_name="TestVM">
+		<config vbox_file="vm/test.vbox" vm_name="TestVM">
 			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"/>
 			<vfs>
-<!--
-				<dir name="/"> <fs/> </dir>
--->
 				<dir name="dev"> <log/> <rtc/> </dir>
 <!--
 				<dir name="dev"> <terminal/> </dir>
 -->
-				<rom name="test.vbox" />
-				<rom name="test.iso" />
+				<dir name="vm"> <fs/> </dir>
 			</vfs>
 		</config>
 		<route>
@@ -280,6 +276,7 @@ append config {
 			<service name="Input"> <child name="vm_fb" /> </service>
 			<service name="Filesystem"> <child name="data_fs" /> </service>
 			<service name="LOG"> <child name="terminal_log"/> </service>
+			<service name="Report"> <child name="nit_report"/> </service>
 			<any-service> <parent /> <any-child /> </any-service>
 		</route>
 	</start>
@@ -300,35 +297,29 @@ set boot_modules {
 	init
 	input_merger
 	ld.lib.so
-	nit_fb
-	nitpicker
-	part_blk
-	pointer
-	ps2_drv
-	report_rom
-	rtc_drv
-	rump_fs
-	rump.lib.so
-	rump_fs.lib.so
-	terminal
-	terminal_log
-	timer
-	usb_drv
-
-	test-input
-
 	libc.lib.so
 	libc_pipe.lib.so
 	libc_terminal.lib.so
 	libiconv.lib.so
 	libm.lib.so
+	nit_fb
+	nitpicker
+	part_blk
+	ps2_drv
 	pthread.lib.so
 	qemu-usb.lib.so
+	report_rom
+	rtc_drv
+	rump_fs
+	rump_fs.lib.so
+	rump.lib.so
 	stdcxx.lib.so
+	terminal
+	terminal_log
+	timer
+	usb_drv
+	vbox_pointer
 	virtualbox5-nova
-
-	test.vbox
-	test.iso
 }
 
 
