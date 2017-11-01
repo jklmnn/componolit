@@ -168,7 +168,7 @@ append config {
 			<service name="Framebuffer"/>
 			<service name="Input"/>
 		</provides>
-		<config xpos="100" ypos="100" width="1350" height="1600" refresh_rate="25"/>
+		<config xpos="342" ypos="626" width="1391" height="927" refresh_rate="25"/>
 	</start>
 
 	<start name="terminal">
@@ -251,7 +251,7 @@ append config {
 			<service name="Framebuffer"/>
 			<service name="Input"/>
 		</provides>
-		<config xpos="0" ypos="0" width="3200" height="1800" refresh_rate="25"/>
+		<config xpos="2115" ypos="222" width="768" height="1355" refresh_rate="25"/>
 		<route>
 			<service name="LOG"> <child name="terminal_log"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
