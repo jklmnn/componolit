@@ -5,6 +5,7 @@
 #
 
 set build_components {
+	app/backdrop
 	app/vbox_pointer
 	core init
 	drivers/framebuffer
@@ -21,8 +22,6 @@ set build_components {
 	server/terminal
 	server/terminal_log
 	virtualbox5
-
-	test/input
 }
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
@@ -236,6 +235,7 @@ append config {
 		</provides>
 		<config fs="ext2fs">
 			<policy label_prefix="android" root="/" writeable="yes"/>
+			<policy label_prefix="backdrop" root="/images" writeable="no"/>
 		</config>
 		<route>
 			<service name="Block"> <child name="part_blk"/> </service>
@@ -243,6 +243,26 @@ append config {
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
+
+	<start name="backdrop" priority="-1">
+		<resource name="RAM" quantum="128M"/>
+		<config>
+			<libc/>
+			<vfs>
+				<dir name="demo"> <fs/> </dir>
+				<rom name="background.png"/>
+			</vfs>
+			<fill color="#ffffff" />
+			<image png="background.png" anchor="top_left" alpha="255" xpos="0" ypos="0" />
+		</config>
+		<route>
+			<service name="LOG"> <child name="terminal_log"/> </service>
+			<service name="Filesystem"> <child name="data_fs" /> </service>
+			<service name="Nitpicker"> <child name="nitpicker" label="backdrop" /> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
 
 	<start name="vm_fb">
 		<binary name="nit_fb"/>
@@ -289,6 +309,7 @@ install_config $config
 
 # generic modules
 set boot_modules {
+	backdrop
 	core
     fb_boot_drv
     fb_drv
@@ -300,6 +321,7 @@ set boot_modules {
 	libc_terminal.lib.so
 	libiconv.lib.so
 	libm.lib.so
+	libpng.lib.so
 	nit_fb
 	nitpicker
 	part_blk
@@ -318,6 +340,9 @@ set boot_modules {
 	usb_drv
 	vbox_pointer
 	virtualbox5-nova
+	zlib.lib.so
+
+	background.png
 }
 
 
