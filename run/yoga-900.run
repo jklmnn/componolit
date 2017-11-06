@@ -19,10 +19,25 @@ set build_components {
 	server/report_rom
 	server/terminal
 	server/terminal_log
-	test/input
+        test/input
 }
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
+
+#override default platform drv policy
+proc platform_drv_policy {} {
+    return {
+        <policy label_prefix="i2c_dw_drv">
+            <pci class="ALL"/>
+        </policy>
+        <policy label_prefix="ps2_drv">
+            <device name="PS2"/>
+        </policy>
+        <policy label_prefix="usb_drv">
+            <pci class="USB"/>
+        </policy>
+    }
+}
 
 append_platform_drv_build_components
 
