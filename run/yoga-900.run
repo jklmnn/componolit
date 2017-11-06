@@ -12,6 +12,7 @@ set build_components {
 	drivers/rtc
 	drivers/timer
 	drivers/usb
+        drivers/spec/x86/i2c-designware
 	server/input_merger
 	server/nit_fb
 	server/nitpicker
@@ -165,6 +166,13 @@ append config {
 			<any-service> <parent/> <any-child/></any-service>
 		</route>
 	</start>
+        <start name="i2c_dw_drv">
+            <resource name="RAM" quantum="8M"/>
+            <route>
+                <service name="LOG"><child name="terminal_log"/></service>
+                <any-service><parent/><any-child/></any-service>
+            </route>
+        </start>
 
 </config>}
 
@@ -191,7 +199,8 @@ set boot_modules {
 	terminal_log
 	test-input
 	timer
-	usb_drv
+        usb_drv
+        i2c_dw_drv
 }
 
 append_platform_drv_boot_modules
