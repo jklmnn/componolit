@@ -4,7 +4,7 @@
 using namespace DW;
 
 I2C::I2C(Genode::Env &env, GSL::i2c_desc *desc) :
-    Genode::Attached_io_mem_dataspace(env, desc->base, desc->length, true),
+    Genode::Attached_io_mem_dataspace(env, desc->base, desc->length),
     Genode::Mmio((Genode::addr_t)local_addr<Genode::addr_t>()),
     timer(env),
     _irq(env, desc->irq)
