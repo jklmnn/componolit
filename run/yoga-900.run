@@ -24,6 +24,7 @@ set build_components {
 	virtualbox5
 }
 
+set use_pointer 1
 
 if [have_spec uefi] {
 	set fb_binary "fb_boot_drv"
@@ -153,8 +154,9 @@ append config {
 			<service name="Report"> <child name="nit_report" /> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
-	</start>
+	</start>}
 
+append_if [expr $use_pointer] config {
 	<start name="vbox_pointer" priority="-1">
 		<resource name="RAM" quantum="2M"/>
 		<config>
@@ -167,8 +169,9 @@ append config {
 			<service name="ROM" label="xray"> <child name="nit_report"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
-	</start>
+	</start>}
 
+append config {
 	<start name="terminal_fb">
 		<binary name="nit_fb"/>
 		<resource name="RAM" quantum="16M"/>
