@@ -4,6 +4,36 @@
 # \date   2016-09-17
 #
 
+# ThinkPad Yoga 12
+
+set screen_width    1920
+set screen_height   1080
+
+set terminal_width   835
+set terminal_height  556
+set terminal_xpos    205
+set terminal_ypos    376
+
+set vm_width         464
+set vm_height        816
+set vm_xpos         1267
+set vm_ypos          132
+
+# Yoga-900
+#
+# set screen_width    3200
+# set screen_height   1800
+#
+# set terminal_width  1391
+# set terminal_height  927
+# set terminal_xpos    342
+# set terminal_ypos    626
+#
+# set vm_width         768
+# set vm_height       1355
+# set vm_xpos         2115
+# set vm_ypos          222
+
 set build_components {
 	app/backdrop
 	app/vbox_pointer
@@ -91,7 +121,12 @@ append config {
 		</provides>
 		<config ehci="yes" uhci="yes" ohci="yes" xhci="yes">
 			<storage/>
-			<hid/>
+			<hid>}
+
+append config "<touchscreen width=\"$screen_width\" height=\"$screen_height\" multitouch=\"yes\"/>"
+
+append config {
+			</hid>
 		</config>
 		<route>
 			<service name="Report"> <child name="usb_devices"/> </service>
@@ -178,8 +213,11 @@ append config {
 		<provides>
 			<service name="Framebuffer"/>
 			<service name="Input"/>
-		</provides>
-		<config xpos="342" ypos="626" width="1391" height="927" refresh_rate="25"/>
+		</provides>}
+
+append config "<config xpos=\"$terminal_xpos\" ypos=\"$terminal_ypos\" width=\"$terminal_width\" height=\"$terminal_height\" refresh_rate=\"25\"/>"
+
+append config {
 	</start>
 
 	<start name="terminal">
@@ -282,8 +320,11 @@ append config {
 		<provides>
 			<service name="Framebuffer"/>
 			<service name="Input"/>
-		</provides>
-		<config xpos="2115" ypos="222" width="768" height="1355" refresh_rate="25"/>
+		</provides>}
+
+append config "<config xpos=\"$vm_xpos\" ypos=\"$vm_ypos\" width=\"$vm_width\" height=\"$vm_height\" refresh_rate=\"25\"/>"
+
+append config {
 		<route>
 			<service name="LOG"> <child name="terminal_log"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
