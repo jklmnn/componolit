@@ -1,0 +1,16 @@
+set screen_width    3200
+set screen_height   1800
+
+set terminal_width  1391
+set terminal_height  927
+set terminal_xpos    342
+set terminal_ypos    626
+
+set vm_width         768
+set vm_height       1355
+set vm_xpos         2115
+set vm_ypos          222
+
+set use_pointer 1
+
+source ${genode_dir}/repos/componolit/run/baseband_demo.inc

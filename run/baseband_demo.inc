@@ -4,36 +4,6 @@
 # \date   2016-09-17
 #
 
-# ThinkPad Yoga 12
-
-set screen_width    1920
-set screen_height   1080
-
-set terminal_width   835
-set terminal_height  556
-set terminal_xpos    205
-set terminal_ypos    376
-
-set vm_width         464
-set vm_height        816
-set vm_xpos         1267
-set vm_ypos          132
-
-# Yoga-900
-#
-# set screen_width    3200
-# set screen_height   1800
-#
-# set terminal_width  1391
-# set terminal_height  927
-# set terminal_xpos    342
-# set terminal_ypos    626
-#
-# set vm_width         768
-# set vm_height       1355
-# set vm_xpos         2115
-# set vm_ypos          222
-
 set build_components {
 	app/backdrop
 	app/vbox_pointer
@@ -53,8 +23,6 @@ set build_components {
 	server/terminal_log
 	virtualbox5
 }
-
-set use_pointer 1
 
 if [have_spec uefi] {
 	set fb_binary "fb_boot_drv"
@@ -93,7 +61,8 @@ append config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100"/>}
+	<default caps="100"/>
+}
 
 append_platform_drv_config
 
@@ -121,7 +90,8 @@ append config {
 		</provides>
 		<config ehci="yes" uhci="yes" ohci="yes" xhci="yes">
 			<storage/>
-			<hid>}
+			<hid>
+}
 
 append config "<touchscreen width=\"$screen_width\" height=\"$screen_height\" multitouch=\"yes\"/>"
 
@@ -148,7 +118,8 @@ append config {
 		</route>
 	</start>
 
-	<start name="fb_drv">}
+	<start name="fb_drv">
+}
 		append config "<binary name=\"$fb_binary\"/>"
 
 append config {
@@ -189,7 +160,8 @@ append config {
 			<service name="Report"> <child name="nit_report" /> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
-	</start>}
+	</start>
+}
 
 append_if [expr $use_pointer] config {
 	<start name="vbox_pointer" priority="-1">
@@ -204,7 +176,8 @@ append_if [expr $use_pointer] config {
 			<service name="ROM" label="xray"> <child name="nit_report"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
-	</start>}
+	</start>
+}
 
 append config {
 	<start name="terminal_fb">
@@ -213,7 +186,8 @@ append config {
 		<provides>
 			<service name="Framebuffer"/>
 			<service name="Input"/>
-		</provides>}
+		</provides>
+}
 
 append config "<config xpos=\"$terminal_xpos\" ypos=\"$terminal_ypos\" width=\"$terminal_width\" height=\"$terminal_height\" refresh_rate=\"25\"/>"
 
@@ -320,7 +294,8 @@ append config {
 		<provides>
 			<service name="Framebuffer"/>
 			<service name="Input"/>
-		</provides>}
+		</provides>
+}
 
 append config "<config xpos=\"$vm_xpos\" ypos=\"$vm_ypos\" width=\"$vm_width\" height=\"$vm_height\" refresh_rate=\"25\"/>"
 
@@ -352,7 +327,8 @@ append config {
 		</route>
 	</start>
 
-</config>}
+</config>
+}
 
 install_config $config
 
@@ -360,9 +336,13 @@ install_config $config
 # Boot modules
 #
 
+# Copy background image
+exec cp [genode_dir]/repos/componolit/doc/img/baseband_demo_bg-${screen_width}x${screen_height}.png bin/background.png
+
 # generic modules
 set boot_modules {
 	backdrop
+	background.png
 	core
 	fb_boot_drv
 	fb_drv
@@ -394,10 +374,7 @@ set boot_modules {
 	vbox_pointer
 	virtualbox5-nova
 	zlib.lib.so
-
-	background.png
 }
-
 
 append_platform_drv_boot_modules
 
