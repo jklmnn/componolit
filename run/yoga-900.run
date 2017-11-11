@@ -24,6 +24,13 @@ set build_components {
 	virtualbox5
 }
 
+
+if [have_spec uefi] {
+	set fb_binary "fb_boot_drv"
+} else {
+	set fb_binary "fb_drv"
+}
+
 source ${genode_dir}/repos/base/run/platform_drv.inc
 
 # Taken from repos/ports/run/virtualbox.run
@@ -105,8 +112,10 @@ append config {
 		</route>
 	</start>
 
-	<start name="fb_drv">
-		<binary name="fb_boot_drv"/>
+	<start name="fb_drv">}
+		append config "<binary name=\"$fb_binary\"/>"
+
+append config {
 		<resource name="RAM" quantum="16M"/>
 		<provides>
 			<service name="Framebuffer"/>
@@ -311,8 +320,8 @@ install_config $config
 set boot_modules {
 	backdrop
 	core
-    fb_boot_drv
-    fb_drv
+	fb_boot_drv
+	fb_drv
 	init
 	input_merger
 	ld.lib.so
