@@ -14,6 +14,7 @@ set build_components {
 	drivers/timer
 	drivers/usb
 	server/input_merger
+	server/nic_bridge
 	server/nit_fb
 	server/nitpicker
 	server/part_blk
@@ -87,9 +88,11 @@ append config {
 		<provides>
 			<service name="Input"/>
 			<service name="Block"/>
+			<service name="Nic"/>
 		</provides>
 		<config ehci="yes" uhci="yes" ohci="yes" xhci="yes">
 			<storage/>
+			<nic mac="02:00:00:00:01:01" />
 			<hid>
 }
 
@@ -306,6 +309,16 @@ append config {
 		</route>
 	</start>
 
+	<start name="nic_bridge" priority="-1">
+		<resource name="RAM" quantum="6M"/>
+		<provides><service name="Nic"/></provides>
+		<config/>
+		<route>
+			<service name="Nic"><child name="usb_drv"/></service>
+			<any-service><parent/></any-service>
+		</route>
+	</start>
+
 	<start name="android" caps="500">
 		<binary name="virtualbox5-nova"/>
 		<resource name="RAM" quantum="2500M"/>
@@ -323,6 +336,7 @@ append config {
 			<service name="Filesystem"> <child name="data_fs" /> </service>
 			<service name="LOG"> <child name="terminal_log"/> </service>
 			<service name="Report"> <child name="nit_report"/> </service>
+			<service name="Nic"> <child name="nic_bridge"/> </service>
 			<any-service> <parent /> <any-child /> </any-service>
 		</route>
 	</start>
@@ -355,6 +369,7 @@ set boot_modules {
 	libiconv.lib.so
 	libm.lib.so
 	libpng.lib.so
+	nic_bridge
 	nit_fb
 	nitpicker
 	part_blk
