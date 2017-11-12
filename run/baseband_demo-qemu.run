@@ -1,0 +1,40 @@
+set screen_width    2560
+set screen_height   1600
+
+set terminal_width  1112
+set terminal_height  740
+set terminal_xpos    274
+set terminal_ypos    581
+
+set vm_width         608
+set vm_height       1088
+set vm_xpos         1694
+set vm_ypos          257
+
+set use_pointer 1
+
+source ${genode_dir}/repos/componolit/run/baseband_demo.inc
+
+set disk_image "bin/test.img"
+set cmd "dd if=/dev/zero of=$disk_image bs=1024 count=65536"
+puts "creating disk image:\n$cmd"
+catch { exec sh -c $cmd }
+
+set cmd "mkfs.vfat -F32 $disk_image"
+puts "formating disk image with vfat file system:\$cmd"
+catch { exec sh -c $cmd }
+
+append qemu_args " -m 2048 "
+append qemu_args " -cpu phenom "
+append qemu_args " -usbdevice mouse -usbdevice keyboard"
+
+append qemu_args "  -device usb-ehci,id=ehci"
+append qemu_args "  -device usb-host,bus=ehci.0,vendorid=0x04e8,productid=0x6863"
+
+append qemu_args " -drive if=none,id=disk,file=$disk_image"
+append qemu_args " -device usb-storage,bus=ehci.0,drive=disk "
+
+append qemu_args " -M pc "
+append qemu_args " -boot order=d "
+
+run_genode_until forever

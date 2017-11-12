@@ -405,9 +405,3 @@ set boot_modules {
 append_platform_drv_boot_modules
 
 build_boot_image $boot_modules
-
-append qemu_args " -m 2048 "
-append qemu_args " -cpu phenom "
-append qemu_args " -usbdevice mouse -usbdevice keyboard"
-
-run_genode_until forever
