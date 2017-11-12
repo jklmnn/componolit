@@ -14,6 +14,7 @@ set build_components {
 	drivers/timer
 	drivers/usb
 	server/input_merger
+	server/log_tee
 	server/nic_bridge
 	server/nit_fb
 	server/nitpicker
@@ -218,11 +219,20 @@ append config {
 		<provides><service name="LOG"/></provides>
 	</start>
 
+	<start name="log_tee">
+		<resource name="RAM" quantum="2M"/>
+		<provides> <service name="LOG"/> </provides>
+		<route>
+			<service name="LOG" label=""> <child name="terminal_log"/> </service>
+			<any-service> <parent/> <any-child/></any-service>
+		</route>
+	</start>
+
 	<start name="rtc_drv">
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Rtc"/> </provides>
 		<route>
-			<service name="LOG"> <child name="terminal_log"/> </service>
+			<service name="LOG"> <child name="log_tee"/> </service>
 			<any-service> <parent/> <any-child/></any-service>
 		</route>
 	</start>
@@ -236,7 +246,7 @@ append config {
 		</provides>
 		<config verbose="yes"/>
 		<route>
-			<service name="LOG"> <child name="terminal_log"/> </service>
+			<service name="LOG"> <child name="log_tee"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
@@ -251,7 +261,7 @@ append config {
 		<route>
 			<service name="Block"> <child name="usb_drv"/> </service>
 			<service name="Report"> <child name="partition_report" /> </service>
-			<service name="LOG"> <child name="terminal_log"/> </service>
+			<service name="LOG"> <child name="log_tee"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
@@ -268,7 +278,7 @@ append config {
 		</config>
 		<route>
 			<service name="Block"> <child name="part_blk"/> </service>
-			<service name="LOG"> <child name="terminal_log"/> </service>
+			<service name="LOG"> <child name="log_tee"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
@@ -285,7 +295,7 @@ append config {
 			<image png="background.png" anchor="top_left" alpha="255" xpos="0" ypos="0" />
 		</config>
 		<route>
-			<service name="LOG"> <child name="terminal_log"/> </service>
+			<service name="LOG"> <child name="log_tee"/> </service>
 			<service name="Filesystem"> <child name="data_fs" /> </service>
 			<service name="Nitpicker"> <child name="nitpicker" label="backdrop" /> </service>
 			<any-service> <parent/> <any-child/> </any-service>
@@ -306,7 +316,7 @@ append config "<config xpos=\"$vm_xpos\" ypos=\"$vm_ypos\" width=\"$vm_width\" h
 
 append config {
 		<route>
-			<service name="LOG"> <child name="terminal_log"/> </service>
+			<service name="LOG"> <child name="log_tee"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
@@ -338,7 +348,7 @@ append config {
 			<service name="Framebuffer"> <child name="vm_fb" /> </service>
 			<service name="Input"> <child name="vm_fb" /> </service>
 			<service name="Filesystem"> <child name="data_fs" /> </service>
-			<service name="LOG"> <child name="terminal_log"/> </service>
+			<service name="LOG"> <child name="log_tee"/> </service>
 			<service name="Report"> <child name="nit_report"/> </service>
 			<service name="Nic"> <child name="nic_srv"/> </service>
 			<any-service> <parent /> <any-child /> </any-service>
@@ -373,6 +383,7 @@ set boot_modules {
 	libiconv.lib.so
 	libm.lib.so
 	libpng.lib.so
+	log_tee
 	nic_bridge
 	nit_fb
 	nitpicker
