@@ -90,7 +90,7 @@ namespace Genode {
 			 * \param md_alloc    meta-data allocator to be used by root component
 			 */
 			Bufferedlog_root(Genode::Env &env, Allocator &md_alloc)
-			: _env(env), Root_component<Bufferedlog_component>(env.ep(), md_alloc) { }
+			: Root_component<Bufferedlog_component>(env.ep(), md_alloc), _env(env) { }
 	};
 }
 
