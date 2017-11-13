@@ -15,14 +15,18 @@ set use_pointer 1
 
 source ${genode_dir}/repos/componolit/run/baseband_demo.inc
 
-set disk_image "bin/test.img"
-set cmd "dd if=/dev/zero of=$disk_image bs=1024 count=65536"
-puts "creating disk image:\n$cmd"
-catch { exec sh -c $cmd }
 
-set cmd "mkfs.vfat -F32 $disk_image"
-puts "formating disk image with vfat file system:\$cmd"
-catch { exec sh -c $cmd }
+puts "creating disk image..."
+set disk_image "bin/test.img"
+    
+exec -ignorestderr dd if=/dev/zero of=${disk_image}.0 bs=512 count=34
+exec -ignorestderr dd if=/dev/zero of=${disk_image}.1 bs=512 count=65502
+exec -ignorestderr dd if=/dev/zero of=${disk_image}.2 bs=512 count=65536
+exec -ignorestderr mkfs.vfat ${disk_image}.1
+exec -ignorestderr mkfs.ext2 ${disk_image}.2
+exec -ignorestderr cat ${disk_image}.0 ${disk_image}.1 ${disk_image}.2 > $disk_image
+exec -ignorestderr parted -a none -s $disk_image mklabel gpt mkpart ESP fat32 34s 65535s mkpart linux ext2 65536s 131038s
+exec -ignorestderr rm ${disk_image}.0 ${disk_image}.1 ${disk_image}.2
 
 append qemu_args " -m 2048 "
 append qemu_args " -cpu phenom "
