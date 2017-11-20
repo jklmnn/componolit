@@ -84,7 +84,7 @@ append config {
 	</start>
 
 	<start name="usb_drv" caps="120">
-		<resource name="RAM" quantum="12M"/>
+		<resource name="RAM" quantum="32M"/>
 		<provides>
 			<service name="Input"/>
 			<service name="Block"/>
@@ -102,7 +102,8 @@ append config {
 			</hid>
 		</config>
 		<route>
-			<service name="Report"> <child name="usb_devices"/> </service>
+                    <service name="Report"> <child name="usb_devices"/> </service>
+                    <service name="LOG"><child name="terminal_log"/></service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
@@ -112,11 +113,11 @@ append config {
 		<provides> <service name="Input" /> </provides>
 		<config>
 			<input label="ps2" />
-			<input label="usb" />
+                        <!--<input label="usb" />-->
 		</config>
 		<route>
 			<service name="Input" label="ps2"> <child name="ps2_drv" /> </service>
-			<service name="Input" label="usb"> <child name="usb_drv" /> </service>
+                        <!--<service name="Input" label="usb"> <child name="usb_drv" /> </service>-->
 			<any-service> <parent/> </any-service>
 		</route>
 	</start>
@@ -309,15 +310,18 @@ append config {
 		</route>
 	</start>
 
+        <!--
 	<start name="nic_bridge" priority="-1">
 		<resource name="RAM" quantum="6M"/>
 		<provides><service name="Nic"/></provides>
 		<config/>
 		<route>
-			<service name="Nic"><child name="usb_drv"/></service>
+                    <service name="Nic"><child name="usb_drv"/></service>
+                    <service name="LOG"><child name="terminal_log"/></service>
 			<any-service><parent/></any-service>
 		</route>
-	</start>
+        </start>
+        -->
 
 	<start name="android" caps="500">
 		<binary name="virtualbox5-nova"/>
@@ -336,7 +340,7 @@ append config {
 			<service name="Filesystem"> <child name="data_fs" /> </service>
 			<service name="LOG"> <child name="terminal_log"/> </service>
 			<service name="Report"> <child name="nit_report"/> </service>
-			<service name="Nic"> <child name="nic_bridge"/> </service>
+			<service name="Nic"> <child name="usb_drv"/> </service>
 			<any-service> <parent /> <any-child /> </any-service>
 		</route>
 	</start>
