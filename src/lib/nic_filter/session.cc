@@ -21,7 +21,7 @@ Nic_filter::Filter::Session::Session(
 
 Nic::Mac_address Nic_filter::Filter::Session::mac_address()
 {
-    char mac[6] = {1,1,1,1,1,1};
+    char mac[6] = {0x0a,0x0d,0x0a,0x0b,0x0e,0x0b};
     return Nic::Mac_address { mac };
 }
 
