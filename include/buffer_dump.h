@@ -5,7 +5,7 @@
 #include <base/log.h>
 
 
-template <typename T, int csize = 2>
+template <typename T, unsigned csize = 2>
 class Buffer_dump
 {
     private:
@@ -19,14 +19,15 @@ class Buffer_dump
         void print(Genode::Output &out) const
         {
             Genode::print(out, "--> ", Genode::Hex((long long)(void*)buffer), "\n");
-            for(Genode::size_t i = 0; i < size; ++i){
+            Genode::size_t i = 0;
+            for(; i < size; ++i){
                 Genode::print(out, Genode::Hex(buffer[i],
                             Genode::Hex::OMIT_PREFIX,
                             Genode::Hex::PAD));
                 Genode::print(out, ((i + 1) % sizeof(T)) ? "" : " ");
                 Genode::print(out, ((i + 1) % (8 * csize)) ? "" : "\n");
             }
-            Genode::print(out, "\n<--");
+            Genode::print(out, (i < (8 * csize)) ? "\n" : "", "<--");
         }
 };
 
