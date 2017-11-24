@@ -23,6 +23,7 @@ set build_components {
 	server/terminal
 	server/terminal_log
 	virtualbox5
+        test/nic_filter
 }
 
 if [have_spec uefi] {
@@ -84,7 +85,7 @@ append config {
 	</start>
 
 	<start name="usb_drv" caps="120">
-		<resource name="RAM" quantum="32M"/>
+		<resource name="RAM" quantum="64M"/>
 		<provides>
 			<service name="Input"/>
 			<service name="Block"/>
@@ -102,6 +103,7 @@ append config {
 			</hid>
 		</config>
 		<route>
+                        <!--<service name="LOG"><child name="terminal_log"/></service>-->
 			<service name="Report"> <child name="usb_devices"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
@@ -309,15 +311,17 @@ append config {
 		</route>
 	</start>
 
-	<start name="nic_bridge" priority="-1">
-		<resource name="RAM" quantum="6M"/>
+	<start name="test-nic_filter" priority="-1">
+		<resource name="RAM" quantum="16M"/>
 		<provides><service name="Nic"/></provides>
 		<config/>
 		<route>
 			<service name="Nic"><child name="usb_drv"/></service>
-			<any-service><parent/></any-service>
+                        <service name="LOG"><child name="terminal_log"/></service>
+			<any-service><parent/><any-child/></any-service>
 		</route>
 	</start>
+        <alias name="nic_srv" child="test-nic_filter"/>
 
 	<start name="android" caps="500">
 		<binary name="virtualbox5-nova"/>
@@ -336,7 +340,7 @@ append config {
 			<service name="Filesystem"> <child name="data_fs" /> </service>
 			<service name="LOG"> <child name="terminal_log"/> </service>
 			<service name="Report"> <child name="nit_report"/> </service>
-			<service name="Nic"> <child name="nic_bridge"/> </service>
+			<service name="Nic"> <child name="nic_srv"/> </service>
 			<any-service> <parent /> <any-child /> </any-service>
 		</route>
 	</start>
@@ -389,6 +393,7 @@ set boot_modules {
 	vbox_pointer
 	virtualbox5-nova
 	zlib.lib.so
+        test-nic_filter
 }
 
 append_platform_drv_boot_modules
