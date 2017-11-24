@@ -84,7 +84,7 @@ append config {
 	</start>
 
 	<start name="usb_drv" caps="120">
-		<resource name="RAM" quantum="12M"/>
+		<resource name="RAM" quantum="32M"/>
 		<provides>
 			<service name="Input"/>
 			<service name="Block"/>
