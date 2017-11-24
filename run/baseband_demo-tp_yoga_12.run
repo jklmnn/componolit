@@ -11,6 +11,6 @@ set vm_height        816
 set vm_xpos         1267
 set vm_ypos          132
 
-set use_pointer 1
+set use_pointer 0
 
 source ${genode_dir}/repos/componolit/run/baseband_demo.inc
