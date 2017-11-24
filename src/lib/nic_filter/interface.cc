@@ -35,7 +35,7 @@ void Interface::_handle_packet(void              *const  base,
 void Interface::_send(void *base, Genode::size_t const size)
 {
 	try {
-                Genode::uint8_t buffer[_filter.buffer_size()];
+                Genode::uint8_t buffer[_filter.buffer_size(size)];
                 Genode::size_t fsize = _filter.filter((void*)buffer, base, size);
 		Packet_descriptor const pkt = _source().alloc_packet(fsize);
 		char *content = _source().packet_content(pkt);

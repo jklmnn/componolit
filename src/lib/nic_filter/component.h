@@ -123,7 +123,7 @@ class Net::Root : public Genode::Root_component<Session_component,
 		Timer::Connection &_timer;
 		Genode::Duration  &_curr_time;
 
-                Nic_filter::Filter _filter;
+                Nic_filter::Filter &_filter;
 
 
 		/********************

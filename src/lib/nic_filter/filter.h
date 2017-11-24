@@ -20,19 +20,9 @@ class Nic_filter::Filter
     public:
         Filter() { }
         
-        Genode::size_t filter(void *buffer, const void *data, const Genode::size_t size)
-        {
-            Genode::log(__func__);
-            if(size > buffer_size())
-                Genode::warning("insufficient buffer size ", buffer_size(), " < ", size);
-            Genode::memcpy(buffer, data, Genode::min(size, buffer_size()));
-            return size;
-        }
+        virtual Genode::size_t filter(void *, const void *, const Genode::size_t) = 0;
 
-        Genode::size_t buffer_size() const
-        {
-            return BUFFER_SIZE;
-        }
+        virtual Genode::size_t buffer_size(const Genode::size_t) const = 0;
 };
 
 #endif //_FILTER_H_
