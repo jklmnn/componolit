@@ -14,9 +14,6 @@
 /* local includes */
 #include <interface.h>
 
-/* Genode includes */
-#include <net/ethernet.h>
-
 using namespace Net;
 using namespace Genode;
 
@@ -38,10 +35,11 @@ void Interface::_handle_packet(void              *const  base,
 void Interface::_send(void *base, Genode::size_t const size)
 {
 	try {
-                _filter.filter();
-		Packet_descriptor const pkt = _source().alloc_packet(size);
+                Genode::uint8_t buffer[_filter.buffer_size()];
+                Genode::size_t fsize = _filter.filter((void*)buffer, base, size);
+		Packet_descriptor const pkt = _source().alloc_packet(fsize);
 		char *content = _source().packet_content(pkt);
-		Genode::memcpy((void *)content, base, size);
+		Genode::memcpy((void *)content, (void*)buffer, fsize);
 		_source().submit_packet(pkt);
 	}
 	catch (Packet_stream_source::Packet_alloc_failed) {
