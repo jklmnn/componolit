@@ -53,9 +53,9 @@ class Net::Interface
 		Genode::Duration   &_curr_time;
 		bool                _log_time;
 
-		void _send(Ethernet_frame &eth, Genode::size_t const eth_size);
+		void _send(void*, Genode::size_t const eth_size);
 
-		void _handle_eth(void              *const  eth_base,
+		void _handle_packet(void              *const  eth_base,
 		                 Genode::size_t     const  eth_size,
 		                 Packet_descriptor  const &pkt);
 
