@@ -1,6 +1,6 @@
-SRC_CC = filter.cc \
-	 session.cc \
-	 root.cc
+SRC_CC = component.cc\
+	 uplink.cc\
+	 interface.cc
 
 INC_DIR += $(REP_DIR)/src/lib/nic_filter
 
