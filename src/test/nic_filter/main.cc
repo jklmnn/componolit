@@ -1,7 +1,7 @@
 
 #include <base/log.h>
 #include <base/component.h>
-#include <filter.h>
+#include <nic_filter.h>
 
 #include <timer_session/connection.h>
 
@@ -12,40 +12,27 @@ namespace Nic_filter_test {
     struct Main;
 }
 
-class Nic_filter_test::Filter : Nic_filter::Filter
+class Nic_filter_test::Filter : public Nic_filter::Filter
 {
-    private:
-
-        Timer::Connection _timer;
-
-        void from_client(const char *buffer, Genode::size_t size, Genode::off_t offset,
-                Nic_filter::Filter::Session *session) override
-        {
-            _timer.usleep(10); //XXX: only needed to fix the roundtrip test of test-nic_loopback
-            char *sbuf = 0;
-            Nic::Packet_descriptor packet = session->get_server_buffer(&sbuf, size, offset);
-            nic_filter__filter(sbuf, buffer, size, size);
-            session->to_server(packet);
-        }
-
-        void from_server(const char *buffer, Genode::size_t size, Genode::off_t offset,
-                Nic_filter::Filter::Session *session) override
-        {
-            _timer.usleep(10); //XXX: only needed to fix the roundtrip test of test-nic_loopback
-            char *cbuf = 0;
-            Nic::Packet_descriptor packet = session->get_client_buffer(&cbuf, size, offset);
-            nic_filter__filter(cbuf, buffer, size, size);
-            session->to_client(packet);
-        }
-
     public:
-        Filter(Genode::Env &env) : Nic_filter::Filter(env), _timer(env)
-    { }
+        
+        Filter() : Nic_filter::Filter() { }
 
-    __attribute__((noinline)) static void hello_world(int num)
-    {
-        Genode::log(num);
-    }
+        Genode::size_t filter(void *buffer, const void *data, const Genode::size_t size) override
+        {
+            const Genode::size_t bufsize = buffer_size(size);
+            if(size > bufsize)
+                Genode::warning("insufficient buffer size ", bufsize, " < ", size);
+            nic_filter__filter(buffer, data, bufsize, size);
+            //Genode::memcpy(buffer, data, Genode::min(size, bufsize));
+            return bufsize;
+        }
+
+        Genode::size_t buffer_size(const Genode::size_t size) const override
+        {
+            return size;
+        }
+
 };
 
 
@@ -54,15 +41,17 @@ struct Nic_filter_test::Main
 
     Filter _filter;
 
-    Main(Genode::Env &env) : _filter(env)
+    Nic_filter::Nic_filter _nf;
+
+    Main(Genode::Env &env) : _nf(env, _filter)
     {
-        Nic_filter_test::Filter::hello_world(1);
-        nic_filter__test(2);
-        Nic_filter_test::Filter::hello_world(3);
+        Genode::log("-- nic filter --");
     }
 };
 
 void Component::construct(Genode::Env &env)
 {
+    /* XXX execute constructors of global statics */
+    env.exec_static_constructors();
     static Nic_filter_test::Main main(env);
 }

@@ -1,6 +1,5 @@
 
-extern "C" void nic_filter__test(int);
-extern "C" void nic_filter__filter(const char*, const char*, int, int);
+extern "C" void nic_filter__filter(void*, const void*, const int, const int);
 
 // gnat exceptions
 

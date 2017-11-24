@@ -1,11 +1,6 @@
 
 package body Nic_filter is
 
-    procedure test(Num: Integer) is
-    begin
-        log(Num);
-    end;
-
     procedure filter(
         dest: System.Address;
         src: System.Address;
