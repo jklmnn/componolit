@@ -16,6 +16,7 @@
 
 /* local includes */
 #include <pointer.h>
+#include <filter.h>
 
 /* Genode includes */
 #include <nic_session/nic_session.h>
@@ -51,6 +52,7 @@ class Net::Interface
 		Interface_label     _label;
 		Timer::Connection  &_timer;
 		Genode::Duration   &_curr_time;
+                Nic_filter::Filter &_filter;
 		bool                _log_time;
 
 		void _send(void*, Genode::size_t const eth_size);
@@ -80,7 +82,8 @@ class Net::Interface
 		          Timer::Connection  &timer,
 		          Genode::Duration   &curr_time,
 		          bool                log_time,
-		          Genode::Allocator  &alloc);
+		          Genode::Allocator  &alloc,
+                          Nic_filter::Filter &filter);
 
 		void remote(Interface &remote) { _remote.set(remote); }
 };

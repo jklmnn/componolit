@@ -26,12 +26,13 @@ Net::Uplink::Uplink(Env               &env,
                     Xml_node           config,
                     Timer::Connection &timer,
                     Duration          &curr_time,
-                    Allocator         &alloc)
+                    Allocator         &alloc,
+                    Nic_filter::Filter &filter)
 :
 	Nic::Packet_allocator(&alloc),
 	Nic::Connection(env, this, BUF_SIZE, BUF_SIZE),
 	Interface(env.ep(), config.attribute_value("uplink", Interface_label()),
-	          timer, curr_time, config.attribute_value("time", false), alloc)
+	          timer, curr_time, config.attribute_value("time", false), alloc, filter)
 {
 	rx_channel()->sigh_ready_to_ack(_sink_ack);
 	rx_channel()->sigh_packet_avail(_sink_submit);

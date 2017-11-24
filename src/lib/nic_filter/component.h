@@ -23,6 +23,7 @@
 /* local includes */
 #include <interface.h>
 #include <uplink.h>
+#include <filter.h>
 
 namespace Net {
 
@@ -97,7 +98,8 @@ class Net::Session_component : public Session_component_base,
 		                  Genode::Xml_node      config,
 		                  Timer::Connection    &timer,
 		                  Genode::Duration     &curr_time,
-		                  Genode::Env          &env);
+		                  Genode::Env          &env,
+                                  Nic_filter::Filter &filter);
 
 
 		/******************
@@ -121,6 +123,8 @@ class Net::Root : public Genode::Root_component<Session_component,
 		Timer::Connection &_timer;
 		Genode::Duration  &_curr_time;
 
+                Nic_filter::Filter _filter;
+
 
 		/********************
 		 ** Root_component **
@@ -134,7 +138,8 @@ class Net::Root : public Genode::Root_component<Session_component,
 		     Genode::Allocator &alloc,
 		     Genode::Xml_node   config,
 		     Timer::Connection &timer,
-		     Genode::Duration  &curr_time);
+		     Genode::Duration  &curr_time,
+                     Nic_filter::Filter &filter);
 };
 
 #endif /* _COMPONENT_H_ */

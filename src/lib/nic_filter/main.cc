@@ -13,26 +13,21 @@
 
 /* Genode */
 #include <base/component.h>
-#include <base/heap.h>
-#include <base/attached_rom_dataspace.h>
-#include <timer_session/connection.h>
 
 /* local includes */
-#include <component.h>
+#include <nic_filter.h>
 
-using namespace Net;
 using namespace Genode;
-
 
 class Main
 {
 	private:
 
-		Attached_rom_dataspace _config;
-		Timer::Connection      _timer;
-		Duration               _curr_time { Microseconds(0UL) };
-		Heap                   _heap;
-		Net::Root              _root;
+            Env &_env;
+
+            Nic_filter::Filter _filter;
+
+            Nic_filter::Nic_filter _nf;
 
 	public:
 
@@ -41,12 +36,7 @@ class Main
 
 
 Main::Main(Env &env)
-:
-	_config(env, "config"), _timer(env), _heap(&env.ram(), &env.rm()),
-	_root(env, _heap, _config.xml(), _timer, _curr_time)
-{
-	env.parent().announce(env.ep().manage(_root));
-}
+: _env(env), _nf(env, _filter) { }
 
 
 void Component::construct(Env &env)

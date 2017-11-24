@@ -21,6 +21,7 @@
 
 /* local includes */
 #include <interface.h>
+#include <filter.h>
 
 namespace Net { class Uplink; }
 
@@ -48,7 +49,8 @@ class Net::Uplink : public Nic::Packet_allocator,
 		       Genode::Xml_node   config,
 		       Timer::Connection &timer,
 		       Genode::Duration  &curr_time,
-		       Genode::Allocator &alloc);
+		       Genode::Allocator &alloc,
+                       Nic_filter::Filter &filter);
 };
 
 #endif /* _UPLINK_H_ */

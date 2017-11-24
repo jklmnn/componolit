@@ -38,6 +38,7 @@ void Interface::_handle_packet(void              *const  base,
 void Interface::_send(void *base, Genode::size_t const size)
 {
 	try {
+                _filter.filter();
 		Packet_descriptor const pkt = _source().alloc_packet(size);
 		char *content = _source().packet_content(pkt);
 		Genode::memcpy((void *)content, base, size);
@@ -79,12 +80,14 @@ Interface::Interface(Entrypoint        &ep,
                      Timer::Connection &timer,
                      Duration          &curr_time,
                      bool               log_time,
-                     Allocator         &alloc)
+                     Allocator         &alloc,
+                     Nic_filter::Filter &filter)
 :
 	_sink_ack     (ep, *this, &Interface::_ack_avail),
 	_sink_submit  (ep, *this, &Interface::_ready_to_submit),
 	_source_ack   (ep, *this, &Interface::_ready_to_ack),
 	_source_submit(ep, *this, &Interface::_packet_avail),
 	_alloc(alloc), _label(label), _timer(timer), _curr_time(curr_time),
+        _filter(filter),
 	_log_time(log_time)
 { }

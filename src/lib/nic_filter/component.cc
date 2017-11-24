@@ -61,15 +61,16 @@ Net::Session_component::Session_component(Allocator         &alloc,
                                           Xml_node           config,
                                           Timer::Connection &timer,
                                           Duration          &curr_time,
-                                          Env               &env)
+                                          Env               &env,
+                                          Nic_filter::Filter &filter)
 :
 	Session_component_base(alloc, amount, env.ram(), tx_buf_size, rx_buf_size),
 	Session_rpc_object(env.rm(), _tx_buf, _rx_buf, &_range_alloc,
 	                   env.ep().rpc_ep()),
 	Interface(env.ep(), config.attribute_value("downlink", Interface_label()),
 	          timer, curr_time, config.attribute_value("time", false),
-	          _guarded_alloc),
-	_uplink(env, config, timer, curr_time, alloc),
+	          _guarded_alloc, filter),
+	_uplink(env, config, timer, curr_time, alloc, filter),
 	_link_state_handler(env.ep(), *this, &Session_component::_handle_link_state)
 {
 	_tx.sigh_ready_to_ack(_sink_ack);
@@ -109,11 +110,12 @@ Net::Root::Root(Env               &env,
                 Allocator         &alloc,
                 Xml_node           config,
                 Timer::Connection &timer,
-                Duration          &curr_time)
+                Duration          &curr_time,
+                Nic_filter::Filter &filter)
 :
 	Root_component<Session_component, Genode::Single_client>(&env.ep().rpc_ep(),
 	                                                         &alloc),
-	_env(env), _config(config), _timer(timer), _curr_time(curr_time)
+	_env(env), _config(config), _timer(timer), _curr_time(curr_time), _filter(filter)
 { }
 
 
@@ -145,7 +147,7 @@ Session_component *Net::Root::_create_session(char const *args)
 		return new (md_alloc())
 			Session_component(*md_alloc(), ram_quota - session_size,
 			                  tx_buf_size, rx_buf_size, _config, _timer,
-			                  _curr_time, _env);
+			                  _curr_time, _env, _filter);
 	}
 	catch (...) { throw Service_denied(); }
 }
