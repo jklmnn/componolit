@@ -1,0 +1,5 @@
+project baseband_fw is
+
+    for source_dirs use (".");
+
+end baseband_fw;
