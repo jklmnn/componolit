@@ -326,7 +326,7 @@ append config {
 	<start name="test-nic_filter" priority="-1">
 		<resource name="RAM" quantum="16M"/>
 		<provides><service name="Nic"/></provides>
-		<config/>
+		<config uplink="bp" downlink="ap"/>
 		<route>
 			<service name="Nic"><child name="usb_drv"/></service>
 			<service name="LOG"><child name="logger"/></service>
