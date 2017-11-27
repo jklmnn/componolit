@@ -24,7 +24,7 @@ set build_components {
 	server/terminal
 	server/terminal_log
 	virtualbox5
-	test/nic_filter
+	server/baseband_firewall
 }
 
 if [have_spec uefi] {
@@ -323,7 +323,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="test-nic_filter" priority="-1">
+	<start name="baseband-fw" priority="-1">
 		<resource name="RAM" quantum="16M"/>
 		<provides><service name="Nic"/></provides>
 		<config uplink="bp" downlink="ap"/>
@@ -333,7 +333,7 @@ append config {
 			<any-service><parent/><any-child/></any-service>
 		</route>
 	</start>
-	<alias name="nic_srv" child="test-nic_filter"/>
+	<alias name="nic_srv" child="baseband-fw"/>
 
 	<start name="android" caps="500">
 		<binary name="virtualbox5-nova"/>
@@ -406,7 +406,7 @@ set boot_modules {
 	vbox_pointer
 	virtualbox5-nova
 	zlib.lib.so
-	test-nic_filter
+	baseband-fw
 }
 
 append_platform_drv_boot_modules
