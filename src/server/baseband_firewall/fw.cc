@@ -20,6 +20,11 @@ void error(const char *msg)
     Genode::error(Genode::String<1024>(msg));
 }
 
+void log_int(const int num)
+{
+    Genode::log("num: ", num);
+}
+
 void __gnat_last_chance_handler()
 {
     Genode::warning(__func__, " not implemented");

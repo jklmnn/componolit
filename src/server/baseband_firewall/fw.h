@@ -6,6 +6,7 @@ extern "C" {
 
 void baseband_fw__filter(void*, const void*, const int, const int);
 
+void log_int(const int);
 void log(const char *);
 void warn(const char *);
 void error(const char *);
