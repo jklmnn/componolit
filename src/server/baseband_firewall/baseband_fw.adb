@@ -30,15 +30,25 @@ package body baseband_fw is
 
     function analyze (
         source: in fw_types.Packet;
-        direction: in fw_types.Direction) return fw_types.Status with
+        dir: in fw_types.Direction) return fw_types.Status with
         SPARK_Mode
     is
-        src_mac: String(1 .. 12);
-        dst_mac: String(1 .. 12);
+--        ril_length: String(1..4);
+--        ril_id: String(1..4);
+--        udp_port: String(1..2);
+--        udp_length: String(1..2);
+        d_ip: String(1..4);
+        d_ip_length: String(1..2);
     begin
-        fw_log.hex_dump(source.eth_header.source, src_mac);
-        fw_log.hex_dump(source.eth_header.destination, dst_mac);
-        fw_log.log(src_mac & " " & fw_log.directed_arrow(direction) & " " & dst_mac, fw_log.debug);
+--        fw_log.hex_dump(source.ril_packet.Length, ril_length);
+--        fw_log.hex_dump(source.ril_packet.id, ril_id);
+--        fw_log.log(fw_log.directed_arrow(dir) & " " & ril_length & ":" & ril_id, fw_log.debug);
+--        fw_log.hex_dump(source.udp_header.destination, udp_port);
+--        fw_log.hex_dump(source.udp_header.Length, udp_length);
+--        fw_log.log(fw_log.directed_arrow(dir) & " " & udp_port & " (" & udp_length & ") ", fw_log.debug);
+        fw_log.hex_dump(source.ip_header.destination, d_ip);
+        fw_log.hex_dump(source.ip_header.total_length, d_ip_length);
+        fw_log.log(fw_log.directed_arrow(dir) & " " & d_ip & ":" & d_ip_length, fw_log.debug);
         return fw_types.ACCEPTED;
     end;
 
