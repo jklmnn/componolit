@@ -1,4 +1,7 @@
+
 package body fw_log is
+
+    pragma Warnings (Off, "pragma Restrictions (No_Exception_Propagation) in effect");
 
     procedure log(msg: String; t: log_type) is
         c_msg: String := msg & Character'Val(0);
