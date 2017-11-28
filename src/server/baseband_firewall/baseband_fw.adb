@@ -1,3 +1,4 @@
+with fw_log;
 
 package body baseband_fw is
 
@@ -7,45 +8,26 @@ package body baseband_fw is
         dest_size: Integer;
         src_size: Integer) 
     is
-        dest_buf: Buffer (0 .. dest_size);
-        src_buf: Buffer (0 .. src_size);
-        p: packet;
+        dest_buf: fw_types.Buffer (0 .. dest_size);
+        src_buf: fw_types.Buffer (0 .. src_size);
+        p: fw_types.packet;
         for dest_buf'Address use dest;
         for src_buf'Address use src;
         for p'Address use src;
-        src_mac: String(1 .. 12) := (others => '_');
-        dst_mac: String(1 .. 12) := (others => '_');
+        src_mac: String(1 .. 12);
+        dst_mac: String(1 .. 12);
     begin
-        hex_dump(p.eth_header.source, src_mac);
-        hex_dump(p.eth_header.destination, dst_mac);
-        log(src_mac & " -> " & dst_mac, debug);
+        fw_log.hex_dump(p.eth_header.source, src_mac);
+        fw_log.hex_dump(p.eth_header.destination, dst_mac);
+        fw_log.log(src_mac & " -> " & dst_mac, fw_log.debug);
         filter_spark(dest_buf, src_buf);
     end;
 
-    procedure log(msg: String; t: log_type) is
-        c_msg: String := msg & Character'Val(0);
-    begin
-        case t is
-            when debug => c_log(c_msg'Address);
-            when warn => c_warn(c_msg'Address);
-            when error => c_error(c_msg'Address);
-        end case;
-    end;
-
-    procedure hex_dump(value: Buffer; dump: out String) with
-        SPARK_Mode is
-    begin
-        dump := (others => '~');
-        for i in 0 .. value'Length - 1 loop
-            dump(dump'First + i * 2) := hex(value(value'First + i).lower);
-            dump(dump'First + i * 2 + 1) := hex(value(value'First + i).upper);
-        end loop;
-    end;
 
 
     procedure filter_spark (
-        dest: out Buffer;
-        src: in Buffer) with
+        dest: out fw_types.Buffer;
+        src: in fw_types.Buffer) with
         SPARK_Mode is
     begin
         dest := src;
