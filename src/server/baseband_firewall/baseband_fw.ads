@@ -22,7 +22,7 @@ package baseband_fw is
 
     function analyze (
         source: in fw_types.Packet;
-        direction: fw_types.Direction) return fw_types.Status with
+        dir: fw_types.Direction) return fw_types.Status with
         SPARK_Mode;
 
 end baseband_fw;
