@@ -5,6 +5,7 @@ use all type fw_types.Nibble;
 package fw_log is
 
     type Log_type is (debug, warn, error);
+    subtype Arrow is String (1 .. 2);
     
     procedure c_log(msg: System.Address) with
         Import,
@@ -45,5 +46,8 @@ package fw_log is
         SPARK_Mode,
     Depends => (hex'Result => n),
     Post => ((hex'Result in '0' .. '9') or (hex'Result in 'a' .. 'f'));
+
+    function directed_arrow(dir: fw_types.Direction) return Arrow with
+        SPARK_Mode;
 
 end fw_log;

@@ -4,7 +4,7 @@
 
 extern "C" {
 
-void baseband_fw__filter(void*, const void*, const int, const int);
+void baseband_fw__filter(void*, const void*, const int, const int, const int);
 
 void log_int(const int);
 void log(const char *);

@@ -108,4 +108,9 @@ package fw_types is
         end record;
     for packet'Size use 432;
     
+    type Direction is (UNKNOWN, AP, BP);
+    for Direction use (UNKNOWN => 0, AP => 1, BP => 2);
+
+    type Status is (ACCEPTED, REJECTED);
+
 end fw_types;

@@ -23,4 +23,14 @@ package body fw_log is
         end loop;
     end;
 
+    function directed_arrow(dir: fw_types.Direction) return Arrow with
+        SPARK_Mode is
+    begin
+        case dir is
+            when fw_types.UNKNOWN => return "<>";
+            when fw_types.AP => return "->";
+            when fw_types.BP => return "<-";
+        end case;
+    end;
+
 end fw_log;
