@@ -3,15 +3,15 @@
 import re
 
 def to_struct (value):
-    return "Buffer'((%s,%s),(%s,%s),(%s,%s),(%s,%s))" % \
-        ((value & 0xf0000000) >> 28,
-         (value & 0x0f000000) >> 24,
-         (value & 0x00f00000) >> 20,
-         (value & 0x000f0000) >> 16,
+    return "fw_types.Buffer'((%s,%s),(%s,%s),(%s,%s),(%s,%s))" % \
+        ((value & 0x000000f0) >>  4,
+         (value & 0x0000000f) >>  0,
          (value & 0x0000f000) >> 12,
          (value & 0x00000f00) >>  8,
-         (value & 0x000000f0) >>  4,
-         (value & 0x0000000f) >>  0)
+         (value & 0x00f00000) >> 20,
+         (value & 0x000f0000) >> 16,
+         (value & 0xf0000000) >> 28,
+         (value & 0x0f000000) >> 24)
 
 
 with open ("ril.h", 'r') as r:
