@@ -120,8 +120,8 @@ is
         end record;
     for packet'Size use 432;
     
-    type Direction is (UNKNOWN, AP, BP);
-    for Direction use (UNKNOWN => 0, AP => 1, BP => 2);
+    type Direction is (UNKNOWN, BP, AP);
+    for Direction use (UNKNOWN => 0, BP => 1, AP => 2);
 
     type Status is (ACCEPTED, REJECTED);
 

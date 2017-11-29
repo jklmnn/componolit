@@ -8,9 +8,9 @@
 namespace Nic_filter {
     class Filter;
     typedef enum {
-        UNKNOWN,
-        UP,
-        DOWN
+        UNKNOWN = 0,
+        UP      = 1,
+        DOWN    = 2
     } direction_t;
 };
 

@@ -25,9 +25,9 @@ package body fw_log is
 
     function directed_arrow(dir: fw_types.Direction) return Arrow is
     (case dir is
-            when fw_types.UNKNOWN => "<>",
-            when fw_types.AP => "<-",
-            when fw_types.BP => "->") with
+            when fw_types.UNKNOWN => "--",
+            when fw_types.AP => "=>",
+            when fw_types.BP => "<=") with
         SPARK_Mode;
 
 end fw_log;
