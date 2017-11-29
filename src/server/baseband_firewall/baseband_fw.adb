@@ -1,6 +1,8 @@
 with fw_log;
 with fw_types;
 use all type fw_types.Nibble;
+use all type fw_types.Byte;
+use all type fw_types.Buffer;
 
 package body baseband_fw is
 
@@ -40,26 +42,43 @@ package body baseband_fw is
 
         udp_s_port: String(1..4);
         udp_d_port: String(1..4);
+        udp_length: String(1..4);
+        udp_checksum: String(1..4);
         
         ril_id: String(1..8);
         ril_length: String(1..8);
+        ril_token: String(1..8);
       
+        proto: constant fw_types.Byte := (1,1);
+        port: constant fw_types.Port := ((4,9), (14,0));
+        c_ril_l: constant fw_types.Buffer := ((0,0), (0,0), (0,0), (0,4));
+        c_ril_setup: constant fw_types.Buffer := ((1, 5), (12, 7), (0,0), (0,0));
+        c_ril_teardown: constant fw_types.Buffer := ((1, 7), (12, 7), (0,0), (0,0));
+
     begin
-        if source.ip_header.Protocol.lower = 1 and source.ip_header.Protocol.upper = 1 then
+        if source.ip_header.Protocol = proto and then
+          (source.udp_header.source = port and source.udp_header.destination = port) and then
+          (source.ril_packet.Length = c_ril_l and 
+          (source.ril_packet.ID = c_ril_setup or source.ril_packet.ID = c_ril_teardown)) then
+
             fw_log.hex_dump(source.ip_header.source, s_ip);
             fw_log.hex_dump(source.ip_header.destination, d_ip);
 
             fw_log.hex_dump(source.udp_header.source, udp_s_port);
             fw_log.hex_dump(source.udp_header.destination, udp_d_port);
+            fw_log.hex_dump(source.udp_header.length, udp_length);
+            fw_log.hex_dump(source.udp_header.checksum, udp_checksum);
 
             fw_log.hex_dump(source.ril_packet.id, ril_id);
             fw_log.hex_dump(source.ril_packet.length, ril_length);
+            fw_log.hex_dump(source.ril_packet.Token_event, ril_token);
 
             fw_log.log(fw_log.directed_arrow(dir) & " " &
                 s_ip(1..2) & "." & s_ip(3..4) & "." & s_ip(5..6) & "." & s_ip(7..8) & ":" & udp_s_port &
                 " -> " &
                 d_ip(1..2) & "." & d_ip(3..4) & "." & d_ip(5..6) & "." & d_ip(7..8) & ":" & udp_d_port &
-                " " & ril_id & " " & ril_length, fw_log.debug);
+                " " & udp_length & " " & udp_checksum &
+                " " & ril_length & " " & ril_id & " " & ril_token, fw_log.debug);
         end if;
         return fw_types.ACCEPTED;
     end;

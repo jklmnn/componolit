@@ -28,8 +28,8 @@ package body fw_log is
     begin
         case dir is
             when fw_types.UNKNOWN => return "<>";
-            when fw_types.AP => return "->";
-            when fw_types.BP => return "<-";
+            when fw_types.AP => return "<-";
+            when fw_types.BP => return "->";
         end case;
     end;
 
