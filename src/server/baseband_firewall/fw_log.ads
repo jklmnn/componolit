@@ -22,12 +22,12 @@ package fw_log is
         Convention => C,
         External_name => "error";
 
-    procedure log_int(num: Integer) with
+    procedure log_int(num: fw_types.U32) with
         Import,
         Convention => C,
         External_name => "log_int";
 
-    procedure log(msg: String; t: log_type) with
+    procedure log(msg: String; t: log_type := debug) with
         SPARK_Mode,
         Pre => msg'Length < 1024;
 

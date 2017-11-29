@@ -54,6 +54,10 @@ package body baseband_fw is
         c_ril_l: constant fw_types.Buffer := ((0,0), (0,0), (0,0), (0,4));
         c_ril_setup: constant fw_types.Buffer := ((1, 5), (12, 7), (0,0), (0,0));
         c_ril_teardown: constant fw_types.Buffer := ((1, 7), (12, 7), (0,0), (0,0));
+        test1: constant fw_types.Byte := (0, 4);
+        test2: constant fw_types.Byte := (4, 0);
+        test3: constant fw_types.Byte := (10, 10);
+        test4: constant fw_types.Byte := (15, 15);
 
     begin
         if source.ip_header.Protocol = proto and then
@@ -73,12 +77,10 @@ package body baseband_fw is
             fw_log.hex_dump(source.ril_packet.length, ril_length);
             fw_log.hex_dump(source.ril_packet.Token_event, ril_token);
 
+            fw_log.log_int(fw_types.int_value(source.ril_packet.Length));
+            fw_log.log_int(fw_types.int_value(source.ril_packet.ID));
             fw_log.log(fw_log.directed_arrow(dir) & " " &
-                s_ip(1..2) & "." & s_ip(3..4) & "." & s_ip(5..6) & "." & s_ip(7..8) & ":" & udp_s_port &
-                " -> " &
-                d_ip(1..2) & "." & d_ip(3..4) & "." & d_ip(5..6) & "." & d_ip(7..8) & ":" & udp_d_port &
-                " " & udp_length & " " & udp_checksum &
-                " " & ril_length & " " & ril_id & " " & ril_token, fw_log.debug);
+                ril_length & " " & ril_id & " " & ril_token);
         end if;
         return fw_types.ACCEPTED;
     end;

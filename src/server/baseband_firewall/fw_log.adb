@@ -3,7 +3,7 @@ package body fw_log is
 
     pragma Warnings (Off, "pragma Restrictions (No_Exception_Propagation) in effect");
 
-    procedure log(msg: String; t: log_type) is
+    procedure log(msg: String; t: log_type := debug) is
         c_msg: String := msg & Character'Val(0);
     begin
         case t is
@@ -23,14 +23,11 @@ package body fw_log is
         end loop;
     end;
 
-    function directed_arrow(dir: fw_types.Direction) return Arrow with
-        SPARK_Mode is
-    begin
-        case dir is
-            when fw_types.UNKNOWN => return "<>";
-            when fw_types.AP => return "<-";
-            when fw_types.BP => return "->";
-        end case;
-    end;
+    function directed_arrow(dir: fw_types.Direction) return Arrow is
+    (case dir is
+            when fw_types.UNKNOWN => "<>",
+            when fw_types.AP => "<-",
+            when fw_types.BP => "->") with
+        SPARK_Mode;
 
 end fw_log;

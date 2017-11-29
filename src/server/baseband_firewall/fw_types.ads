@@ -1,23 +1,35 @@
 
-package fw_types is
-
-
+package fw_types with SPARK_Mode
+is
+    
+    type U32 is mod 4294967296;
+    
+    function exp(base: U32; exp: U32) return U32;
+    
     type Nibble is mod 16;
     for Nibble'Size use 4;
-
+    
     type Byte is record
         lower: Nibble;
         upper: Nibble;
     end record;
-
+    
     for Byte use 
         record
             upper at 0 range 0 .. 3;
             lower at 0 range 4 .. 7;
         end record;
     for Byte'Size use 8;
-
+    
+    function int_value(b: Byte) return U32 is
+        (U32(b.lower) * 16 + U32(b.upper)) with SPARK_Mode;
+    
     type Buffer is array (integer range <>) of Byte;
+    
+    function int_value(b: Buffer) return U32 with
+      SPARK_Mode,
+        Pre => (b'Length < 5) and (int_value(b(b'First)) < 128);
+    
     subtype Mac is Buffer(0 .. 5);
     subtype IP_address is Buffer(0 .. 3);
     subtype Port is Buffer(0 .. 1);
