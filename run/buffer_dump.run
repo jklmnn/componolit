@@ -1,0 +1,48 @@
+
+set build_components {
+    core
+    init
+    test/buffer_dump
+}
+
+build $build_components
+
+create_boot_directory
+
+append config {
+<config>
+    <parent-provides>
+        <service name="ROM"/>
+        <service name="IRQ"/>
+        <service name="IO_MEM"/>
+        <service name="IO_PORT"/>
+        <service name="PD"/>
+        <service name="RM"/>
+        <service name="CPU"/>
+        <service name="LOG"/>
+    </parent-provides>
+    <default-route>
+        <any-service><parent/></any-service>
+    </default-route>
+    <default caps="100"/>
+
+    <start name="test-buffer_dump">
+        <resource name="RAM" quantum="1M"/>
+    </start>
+</config>
+}
+
+install_config $config
+
+set boot_modules {
+    core
+    ld.lib.so
+    init
+    test-buffer_dump
+}
+
+build_boot_image $boot_modules
+
+append qemu_args " -nographic -m 128"
+
+run_genode_until "-- buffer dump finished --" 10
