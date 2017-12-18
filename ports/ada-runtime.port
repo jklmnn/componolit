@@ -1,0 +1,13 @@
+LICENSE     := GPLv3
+VERSION     := 2017
+DOWNLOADS   := zfp-min.archive
+
+#minimal zfp
+FILES := gnat-gpl-$(VERSION)-x86_64-linux-bin/lib/gcc/x86_64-pc-linux-gnu/6.3.1/rts-native/adainclude/system.ads \
+         gnat-gpl-$(VERSION)-x86_64-linux-bin/lib/gcc/x86_64-pc-linux-gnu/6.3.1/rts-zfp/adalib/system.ali
+
+URL(zfp-min)    := http://mirrors.cdn.adacore.com/art/591c6d80c7a447af2deed1d7
+NAME(zfp-min)   := gnat-gpl-$(VERSION)-x86_64-linux-bin.tar.gz
+SHA(zfp-min)    := 9682e2e1f2f232ce03fe21d77b14c37a0de5649b
+DIR(zfp-min)    := ada_rts/zfp-min
+TAR_OPT(zfp-min):= --strip-components=6 --files-from - < <(sed 's/ /\n/g' <<< "$(FILES)")
