@@ -46,7 +46,6 @@ append config {
 		<provides><service name="Nic"/></provides>
         <config interface="lo"/>
 		<route>
-            <service name="Nic"><child name="nic_loopback"/></service>
 			<any-service><parent/><any-child/></any-service>
 		</route>
 	</start>
