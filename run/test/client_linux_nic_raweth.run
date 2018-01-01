@@ -1,0 +1,98 @@
+#
+# \brief  Test linux raw Ethernet Nic client
+# \author Alexander Senier
+# \date   2017-12-31
+#
+
+set build_components {
+	core init
+    app/linux_nic_raweth
+    drivers/timer
+    server/nic_loopback
+    server/nic_dump
+}
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+append_platform_drv_build_components
+build $build_components
+create_boot_directory
+
+#
+# Generate config
+#
+
+append config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<default caps="100"/>
+}
+
+append_platform_drv_config
+
+append config {
+
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+
+	<start name="nic_loopback">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Nic"/></provides>
+	</start>
+
+	<start name="nic_dump">
+		<resource name="RAM" quantum="5M"/>
+		<provides><service name="Nic"/></provides>
+        <config uplink="lo" downlink="lx" time="yes"/>
+        <route>
+            <service name="Nic"><child name="nic_loopback"/></service>
+            <service name="Timer"><child name="timer"/></service>
+            <any-service><parent/></any-service>
+        </route>
+	</start>
+
+    <start name="client-linux_nic_raweth">
+        <resource name="RAM" quantum="5M"/>
+        <config interface="tap0"/>
+        <route>
+            <service name="Nic"><child name="nic_dump"/></service>
+            <any-service><parent/></any-service>
+        </route>
+    </start>
+
+</config>
+}
+
+install_config $config
+
+#
+# Boot modules
+#
+
+# generic modules
+set boot_modules {
+    core init
+    ld.lib.so
+    timer
+    client-linux_nic_raweth
+    nic_loopback
+    nic_dump
+}
+
+append_platform_drv_boot_modules
+build_boot_image $boot_modules
+
+run_genode_until forever
