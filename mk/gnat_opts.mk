@@ -1,3 +1,8 @@
+# Set custom ADC file, ignore local one
+CC_ADA_OPT += -gnatec=$(REP_DIR)/mk/gnat.adc
+CC_ADA_OPT += -gnatA	 # Avoid processing gnat.adc, if present file will be ignored
+
+
 # Assertions are not supported right now.
 # We should eventually enable runtime checks.
 #
