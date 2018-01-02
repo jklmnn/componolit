@@ -2,3 +2,4 @@
 *.o
 *.adb.stderr
 *.adb.stdout
+gnatprove
