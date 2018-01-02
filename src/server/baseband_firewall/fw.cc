@@ -7,22 +7,22 @@
 
 extern "C" {
 
-void log(const char *msg)
+void genode_log__log(const char *msg)
 {
     Genode::log(Genode::String<1024>(msg));
 }
 
-void warn(const char *msg)
+void genode_log__warn(const char *msg)
 {
     Genode::warning(Genode::String<1024>(msg));
 }
 
-void error(const char *msg)
+void genode_log__error(const char *msg)
 {
     Genode::error(Genode::String<1024>(msg));
 }
 
-void log_int(const int num)
+void genode_log__int(const int num)
 {
     Genode::log("num: ", num);
 }

@@ -1,40 +1,35 @@
 package Fw_Types
-with SPARK_Mode
 is
 
-    type U32 is mod 4294967296;
+    type U32 is mod 2**32;
 
-    function Exp (Base : U32; Exponent : U32) return U32;
+    function Exp
+        (Base     : U32;
+         Exponent : U32) return U32
+    with
+        Pre  => Exponent <= U32 (Natural'Last),
+        Post => (Exp'Result = Base ** Natural (Exponent));
 
     type Nibble is mod 16;
     for Nibble'Size use 4;
 
-    type Byte is record
-        Lower : Nibble;
-        Upper : Nibble;
-    end record;
-
-    for Byte use
-        record
-            Upper at 0 range 0 .. 3;
-            Lower at 0 range 4 .. 7;
-        end record;
+    type Byte is mod 256;
     for Byte'Size use 8;
-
-    function Int_Value (B : Byte) return U32 is
-        (U32 (B.Lower) * 16 + U32 (B.Upper))
-    with SPARK_Mode;
 
     type Buffer is array (Integer range <>) of Byte;
 
-    function Int_Value (Buf : Buffer) return U32
-    with
-        SPARK_Mode,
-        Pre => (Buf'Length < 5) and (Int_Value (Buf (Buf'First)) < 128);
+    subtype Buffer_2 is Buffer (0 .. 1);
+    subtype Buffer_4 is Buffer (0 .. 3);
+    subtype Buffer_6 is Buffer (0 .. 5);
 
-    subtype Mac is Buffer (0 .. 5);
-    subtype IP_address is Buffer (0 .. 3);
-    subtype Port is Buffer (0 .. 1);
+    function Get_U32_BE (Buf : Buffer_4) return U32 is
+        (U32 (Buf (0)) + 256 * U32 (Buf (1)) + 65536 * U32 (Buf (2)) + 16777216 * U32 (Buf (3)));
+
+    pragma Assert (Get_U32_BE (Buffer_4'(1, 0, 0, 0)) = 1);
+
+    subtype Mac is Buffer_6;
+    type IP_address is new Buffer_4;
+    subtype Port is Buffer_2;
 
     type Eth is
     record

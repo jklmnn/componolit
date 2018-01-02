@@ -1,5 +1,15 @@
+with "../../../mk/componolit.gpr";
+
 project baseband_fw is
 
-    for source_dirs use (".");
+    for Source_Dirs use (".");
+
+    package Prove is
+        for Switches use Componolit.Gnatprove_Switches;
+    end Prove;
+
+    package Builder is
+        for Global_Configuration_Pragmas use "../../../mk/componolit.adc";
+    end Builder;
 
 end baseband_fw;

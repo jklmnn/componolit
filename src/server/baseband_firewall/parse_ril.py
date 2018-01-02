@@ -3,19 +3,15 @@
 import re
 
 def to_struct (value):
-    return "fw_types.Buffer'((%s,%s),(%s,%s),(%s,%s),(%s,%s))" % \
-        ((value & 0x000000f0) >>  4,
-         (value & 0x0000000f) >>  0,
-         (value & 0x0000f000) >> 12,
-         (value & 0x00000f00) >>  8,
-         (value & 0x00f00000) >> 20,
-         (value & 0x000f0000) >> 16,
-         (value & 0xf0000000) >> 28,
-         (value & 0x0f000000) >> 24)
+    return "Fw_Types.Buffer'(16#%2.2x#, 16#%2.2x#, 16#%2.2x#, 16#%2.2x#)" % \
+        ((value & 0x000000ff) >>  0,
+         (value & 0x0000ff00) >>  8,
+         (value & 0x00ff0000) >> 16,
+         (value & 0xff000000) >> 24)
 
 
 with open ("ril.h", 'r') as r:
     for line in r:
         match = re.match ('#define\s+RIL_(REQUEST|RESPONSE|UNSOL)_([^ ]+)\s+(.*)', line)
         if match:
-            print ('elsif source.ril_packet.id = %s then fw_log.log (arrow & " %s");' % (to_struct (int(match.group(3))), match.group(1) + "_" + match.group(2)))
+            print ('elsif Msg = %s then\n    Fw_Log.Log (Arrow & " %s");' % (to_struct (int(match.group(3))), match.group(1) + "_" + match.group(2)))
