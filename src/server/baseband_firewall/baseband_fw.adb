@@ -58,20 +58,20 @@ pragma Warnings (Off, "pragma Restrictions (No_Exception_Propagation) in effect"
         Token  : String (1 .. 8);
         Msg    : Fw_Types.Buffer (0 .. 3);
     begin
-        if Source.IP_Header.Protocol /= Proto then
+        if Source.IP_Header.Protocol /= RIL_Proxy_Proto then
             return Fw_Types.Rejected;
         end if;
 
-        if Source.UDP_Header.Source /= Port or Source.UDP_Header.Destination = Port
+        if Source.UDP_Header.Source /= RIL_Proxy_Port or Source.UDP_Header.Destination = RIL_Proxy_Port
         then
             return Fw_Types.Rejected;
         end if;
 
-        if Source.RIL_Packet.Length = RIL_Length then
-            if Source.RIL_Packet.ID = RIL_Setup then
+        if Source.RIL_Packet.Length = RIL_Proxy_Length then
+            if Source.RIL_Packet.ID = RIL_Proxy_Setup then
                 Fw_Log.Log (Arrow & " SETUP");
                 return Fw_Types.Accepted;
-            elsif Source.RIL_Packet.ID = RIL_Teardown then
+            elsif Source.RIL_Packet.ID = RIL_Proxy_Teardown then
                 Fw_Log.Log (Arrow & " TEARDOWN");
                 return Fw_Types.Accepted;
             end if;

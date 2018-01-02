@@ -26,10 +26,10 @@ private
     with
       SPARK_Mode;
 
-    Proto        : constant Fw_Types.Byte   := (1, 1);
-    Port         : constant Fw_Types.Port   := ((4, 9), (14, 0));
-    RIL_Length   : constant Fw_Types.Buffer := ((0, 0), (0, 0), (0, 0), (0, 4));
-    RIL_Setup    : constant Fw_Types.Buffer := ((1, 5), (12, 7), (0, 0), (0, 0));
-    RIL_Teardown : constant Fw_Types.Buffer := ((1, 7), (12, 7), (0, 0), (0, 0));
+    RIL_Proxy_Proto    : constant Fw_Types.Byte   := (1, 1);
+    RIL_Proxy_Port     : constant Fw_Types.Port   := ((4, 9), (14, 0));
+    RIL_Proxy_Length   : constant Fw_Types.Buffer := ((0, 0), (0, 0), (0, 0), (0, 4));
+    RIL_Proxy_Setup    : constant Fw_Types.Buffer := ((1, 5), (12, 7), (0, 0), (0, 0));
+    RIL_Proxy_Teardown : constant Fw_Types.Buffer := ((1, 7), (12, 7), (0, 0), (0, 0));
 
 end Baseband_Fw;
