@@ -1,34 +1,35 @@
 with System;
-with fw_types;
+with Fw_Types;
 
-package baseband_fw is
+package Baseband_Fw is
 
-    procedure filter(
-        dest: System.Address;
-        src: System.Address;
-        dest_size: Integer;
-        src_size: Integer;
-        dir: Integer
-        );
+    procedure Filter
+      (Dest      : System.Address;
+       Src       : System.Address;
+       Dest_Size : Integer;
+       Src_Size  : Integer;
+       Dir       : Integer);
 
-    private
+private
 
-    procedure copy (
-        dest: out fw_types.Buffer;
-        src: in fw_types.Buffer) with
-        SPARK_Mode,
-        Pre => (dest'Length = src'Length),
-        Depends => (dest => src);
+    procedure Copy
+      (Dest :    out Fw_Types.Buffer;
+       Src  :        Fw_Types.Buffer)
+    with
+       SPARK_Mode,
+       Pre     => (Dest'Length = Src'Length),
+       Depends => (Dest => Src);
 
-    function analyze (
-        source: in fw_types.Packet;
-        dir: fw_types.Direction) return fw_types.Status with
+    function Analyze
+      (Source : Fw_Types.Packet;
+       Dir    : Fw_Types.Direction) return Fw_Types.Status
+    with
       SPARK_Mode;
 
-    proto: constant fw_types.Byte := (1,1);
-    port: constant fw_types.Port := ((4,9), (14,0));
-    ril_length: constant fw_types.Buffer := ((0,0), (0,0), (0,0), (0,4));
-    ril_setup: constant fw_types.Buffer := ((1, 5), (12, 7), (0,0), (0,0));
-    ril_teardown: constant fw_types.Buffer := ((1, 7), (12, 7), (0,0), (0,0));
+    Proto        : constant Fw_Types.Byte   := (1, 1);
+    Port         : constant Fw_Types.Port   := ((4, 9), (14, 0));
+    RIL_Length   : constant Fw_Types.Buffer := ((0, 0), (0, 0), (0, 0), (0, 4));
+    RIL_Setup    : constant Fw_Types.Buffer := ((1, 5), (12, 7), (0, 0), (0, 0));
+    RIL_Teardown : constant Fw_Types.Buffer := ((1, 7), (12, 7), (0, 0), (0, 0));
 
-end baseband_fw;
+end Baseband_Fw;

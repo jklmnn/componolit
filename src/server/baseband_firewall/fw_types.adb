@@ -1,34 +1,39 @@
-package body fw_types with SPARK_Mode
+package body Fw_Types
+with SPARK_Mode
 is
 
+pragma Warnings (Off, "pragma Restrictions (No_Exception_Propagation) in effect");
+
    ---------------
-   -- int_value --
+   -- Int_Value --
    ---------------
 
-    pragma Assert(int_value(Byte'(0,1)) = 1);
-    pragma Assert(int_value(Byte'(1,0)) = 16);
-    pragma Assert(int_Value(Byte'(1,1)) = 17);
+    pragma Assert (Int_Value (Byte'(0, 1)) = 1);
+    pragma Assert (Int_Value (Byte'(1, 0)) = 16);
+    pragma Assert (Int_Value (Byte'(1, 1)) = 17);
 
-    function exp(base: U32; exp: U32) return U32
+    function Exp (Base : U32; Exponent : U32) return U32
     is
-        ret: U32 := 1;
+        Ret : U32 := 1;
     begin
-        for i in 1 .. exp loop
-            ret := ret * base;
+        for i in 1 .. Exponent
+        loop
+            Ret := Ret * Base;
         end loop;
-        return ret;
-    end;
+        return Ret;
+    end Exp;
 
-   function int_value (b: Buffer) return U32
+    function Int_Value (Buf : Buffer) return U32
     is
-        value : U32 := 0;
+        Value : U32 := 0;
     begin
-        for i in 0 .. b'Length - 1 loop
-            value := value + (int_value(b(i + b'First)) * exp(255, U32(i)));
+        for i in 0 .. Buf'Length - 1
+        loop
+            Value := Value + (Int_Value (Buf (i + Buf'First)) * Exp (255, U32 (i)));
         end loop;
-        return value;
-    end int_value;
+        return Value;
+    end Int_Value;
 
-    pragma Assert(int_value(Buffer'((0,1), (0,0), (0,0), (0,0))) = 1);
+    pragma Assert (Int_Value (Buffer'((0, 1), (0, 0), (0, 0), (0, 0))) = 1);
 
-end fw_types;
+end Fw_Types;

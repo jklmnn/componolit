@@ -1,33 +1,36 @@
-
-package body fw_log is
-
-    pragma Warnings (Off, "pragma Restrictions (No_Exception_Propagation) in effect");
-
-    procedure log(msg: String; t: log_type := debug) is
-        c_msg: String := msg & Character'Val(0);
+package body Fw_Log
+is
+    procedure Log (Msg : String; T : Log_Type := Debug)
+    is
+        C_Msg : String := Msg & Character'Val (0);
     begin
-        case t is
-            when debug => c_log(c_msg'Address);
-            when warn => c_warn(c_msg'Address);
-            when error => c_error(c_msg'Address);
+        pragma Warnings (Off, "pragma Restrictions (No_Exception_Propagation) in effect");
+        case T is
+            when Debug => C_Log (C_Msg'Address);
+            when Warn  => C_Warn (C_Msg'Address);
+            when Error => C_Error (C_Msg'Address);
         end case;
-    end;
+    end Log;
 
-    procedure hex_dump(value: fw_types.Buffer; dump: out String) with
-        SPARK_Mode is
+    procedure Hex_Dump (Value :        Fw_Types.Buffer;
+                        Dump  :    out String)
+        with SPARK_Mode
+    is
     begin
-        dump := (others => '~');
-        for i in 0 .. value'Length - 1 loop
-            dump(dump'First + i * 2) := hex(value(value'First + i).lower);
-            dump(dump'First + i * 2 + 1) := hex(value(value'First + i).upper);
+        Dump := (others => '~');
+        for i in 0 .. Value'Length - 1
+        loop
+            Dump (Dump'First + i * 2) := Hex (Value (Value'First + i).Lower);
+            Dump (Dump'First + i * 2 + 1) := Hex (Value (Value'First + i).Upper);
         end loop;
-    end;
+    end Hex_Dump;
 
-    function directed_arrow(dir: fw_types.Direction) return Arrow is
-    (case dir is
-            when fw_types.UNKNOWN => "--",
-            when fw_types.AP => "=>",
-            when fw_types.BP => "<=") with
-        SPARK_Mode;
+    function Directed_Arrow (Dir : Fw_Types.Direction) return Arrow
+    is
+        (case Dir is
+            when Fw_Types.Unknown => "--",
+            when Fw_Types.AP      => "=>",
+            when Fw_Types.BP      => "<=")
+        with SPARK_Mode;
 
-end fw_log;
+end Fw_Log;
