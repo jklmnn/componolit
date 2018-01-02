@@ -1,7 +1,9 @@
-
-#include <fw.h>
+// Genode includes
 #include <base/log.h>
 #include <util/string.h>
+
+// Local includes
+#include <fw.h>
 
 extern "C" {
 
@@ -27,7 +29,8 @@ void log_int(const int num)
 
 void __gnat_last_chance_handler()
 {
-    Genode::warning(__func__, " not implemented");
+    Genode::error(__func__, " called");
+    throw Genode::Exception();
 }
 
 }
