@@ -4,6 +4,7 @@ use all type Fw_Types.Nibble;
 use all type Fw_Types.Byte;
 use all type Fw_Types.Buffer;
 use all type Fw_Types.Direction;
+use all type Fw_Types.Status;
 
 package body Baseband_Fw
 is
@@ -26,10 +27,14 @@ pragma Warnings (Off, "pragma Restrictions (No_Exception_Propagation) in effect"
         Src_Packet : Fw_Types.Packet;
         for Src_Packet'Address use Src;
 
-        Packet_Status : Fw_Types.Status := Analyze (Src_Packet, Fw_Types.Direction'Val (Dir));
-        pragma Unreferenced (Packet_Status);
+        Packet_Status : constant Fw_Types.Status := Analyze (Src_Packet, Fw_Types.Direction'Val (Dir));
     begin
-        Copy (Dest_Buf, Src_Buf);
+        if Packet_Status = Fw_Types.Accepted
+        then
+            Copy (Dest_Buf, Src_Buf);
+        else
+            Fw_Log.Log ("Dropping packet");
+        end if;
     end Filter;
 
     procedure Copy
