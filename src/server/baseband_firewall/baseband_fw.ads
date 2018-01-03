@@ -15,7 +15,7 @@ private
     procedure Filter
         (Source_Buffer      :        Fw_Types.Buffer;
          Source_Packet      :        Fw_Types.Packet;
-         Destination_Buffer : in out Fw_Types.Buffer;
+         Destination_Buffer :    out Fw_Types.Buffer;
          Direction          :        Fw_Types.Direction);
 
     procedure Copy

@@ -455,7 +455,7 @@ pragma Warnings (Off, "pragma Restrictions (No_Exception_Propagation) in effect"
     procedure Filter
         (Source_Buffer      :        Fw_Types.Buffer;
          Source_Packet      :        Fw_Types.Packet;
-         Destination_Buffer : in out Fw_Types.Buffer;
+         Destination_Buffer :    out Fw_Types.Buffer;
          Direction          :        Fw_Types.Direction)
     is
         Packet_Status : Fw_Types.Status;
