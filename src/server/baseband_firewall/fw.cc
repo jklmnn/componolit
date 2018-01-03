@@ -9,20 +9,20 @@ extern "C" {
 
 void genode_log__log(const char *msg)
 {
-    Genode::log(Genode::String<1024>(msg));
+    Genode::log(Genode::Cstring(msg));
 }
 
 void genode_log__warn(const char *msg)
 {
-    Genode::warning(Genode::String<1024>(msg));
+    Genode::warning(Genode::Cstring(msg));
 }
 
 void genode_log__error(const char *msg)
 {
-    Genode::error(Genode::String<1024>(msg));
+    Genode::error(Genode::Cstring(msg));
 }
 
-void genode_log__int(const int num)
+void genode_log__log_int(const int num)
 {
     Genode::log("num: ", num);
 }

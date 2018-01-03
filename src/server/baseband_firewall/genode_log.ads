@@ -6,14 +6,17 @@ is
 
     procedure Log (Msg : String)
     with
+        Pre => Msg'Length < 1024,
         Global => (In_Out => State);
 
     procedure Warn (Msg : String)
     with
+        Pre => Msg'Length < 1024,
         Global => (In_Out => State);
 
     procedure Error (Msg : String)
     with
+        Pre => Msg'Length < 1024,
         Global => (In_Out => State);
 
     procedure Int (Num : Integer)

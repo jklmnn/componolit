@@ -1,18 +1,9 @@
-with Genode_Log;
 with Fw_Types;
 use all type Fw_Types.Byte;
 
 package Fw_Log
 is
-
-    type Log_Type is (Debug, Warn, Error);
     subtype Arrow is String (1 .. 2);
-
-    procedure Log (Msg : String;
-                   T   : Log_Type := Debug)
-    with
-        Global => (In_Out => Genode_Log.State),
-        Pre => Msg'Length < 1024;
 
     procedure Hex_Dump (Value :        Fw_Types.Buffer;
                         Dump  :    out String)

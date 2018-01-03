@@ -3,16 +3,6 @@ is
 
 pragma Warnings (Off, "pragma Restrictions (No_Exception_Propagation) in effect");
 
-    procedure Log (Msg : String; T : Log_Type := Debug)
-    is
-    begin
-        case T is
-            when Debug => Genode_Log.Log (Msg);
-            when Warn  => Genode_Log.Warn (Msg);
-            when Error => Genode_Log.Error (Msg);
-        end case;
-    end Log;
-
     procedure Hex_Dump (Value :        Fw_Types.Buffer;
                         Dump  :    out String)
     is

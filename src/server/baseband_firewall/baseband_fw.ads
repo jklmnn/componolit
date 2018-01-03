@@ -3,7 +3,7 @@ with Fw_Types;
 
 package Baseband_Fw is
 
-    procedure Ext_Filter
+    procedure Filter_Hook
       (Dest      : System.Address;
        Src       : System.Address;
        Dest_Size : Integer;

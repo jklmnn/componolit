@@ -21,7 +21,7 @@ class Baseband::Firewall : public Nic_filter::Filter
         Genode::size_t filter(void *buffer, const void *data, const Genode::size_t size, Nic_filter::direction_t dir) override
         {
             const Genode::size_t bufsize = buffer_size(size);
-            baseband_fw__filter(buffer, data, bufsize, size, (int)dir);
+            baseband_fw__filter_hook(buffer, data, bufsize, size, (int)dir);
             return bufsize;
         }
 
