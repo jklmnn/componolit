@@ -13,7 +13,8 @@ pragma Warnings (Off, "pragma Restrictions (No_Exception_Propagation) in effect"
         procedure C_Log (Arg : System.Address)
         with
             Import,
-            Convention => C;
+            Convention => C,
+            External_Name => "c_log";
 
         Message_Buffer : String := Msg & Character'Val (0);
     begin
@@ -25,7 +26,8 @@ pragma Warnings (Off, "pragma Restrictions (No_Exception_Propagation) in effect"
         procedure C_Warn (Arg : System.Address)
         with
             Import,
-            Convention => C;
+            Convention => C,
+            External_Name => "c_warn";
 
         Message_Buffer : String := Msg & Character'Val (0);
     begin
@@ -37,7 +39,8 @@ pragma Warnings (Off, "pragma Restrictions (No_Exception_Propagation) in effect"
         procedure C_Error (Arg : System.Address)
         with
             Import,
-            Convention => C;
+            Convention => C,
+            External_Name => "c_error";
 
         Message_Buffer : String := Msg & Character'Val (0);
     begin
@@ -49,7 +52,8 @@ pragma Warnings (Off, "pragma Restrictions (No_Exception_Propagation) in effect"
         procedure C_Int (Arg : Fw_Types.U32)
         with
             Import,
-            Convention => C;
+            Convention => C,
+            External_Name => "c_log_int";
     begin
         C_Int (Fw_Types.U32 (Num));
     end Int;

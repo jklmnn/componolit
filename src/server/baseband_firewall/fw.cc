@@ -7,22 +7,22 @@
 
 extern "C" {
 
-void genode_log__log(const char *msg)
+void c_log(const char *msg)
 {
     Genode::log(Genode::Cstring(msg));
 }
 
-void genode_log__warn(const char *msg)
+void c_warn(const char *msg)
 {
     Genode::warning(Genode::Cstring(msg));
 }
 
-void genode_log__error(const char *msg)
+void c_error(const char *msg)
 {
     Genode::error(Genode::Cstring(msg));
 }
 
-void genode_log__log_int(const int num)
+void c_log_int(const int num)
 {
     Genode::log("num: ", num);
 }
