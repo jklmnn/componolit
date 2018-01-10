@@ -172,3 +172,132 @@ above) perform an installation onto the device:
 ```sh
 $ make device
 ```
+
+# Running the demo
+
+Once everything is set up, there are several options to run Android in a
+virtual machine with an external baseband. The most convenient solution is
+deploying Genode on real hardware using our demo run script. If you don't own a
+suitable device, you can also run Genode on your Linux machine or run the demo
+on Linux without our baseband filter.
+
+## Genode/NOVA on real hardware
+
+Currently the Lenovo ThinkPad Yoga 12 and the Lenovo Yoga 900 are supported for
+the baseband separation demo. Other device may work with minor adjustments.
+
+To run the demo, check out our forked Genode source tree from
+[here](https://github.com/Componolit/genode/tree/baseband_fw_support_rndis) and
+set it up as described in the README. Adding the external
+[Componolit repository](https://github.com/Componolit/componolit.git) is analogous
+to adding the external Genode world repository, refer to [this documentation]
+(https://github.com/genodelabs/genode-world/blob/master/README). Make sure to
+check out the `baseband_fw branch` of the Componolit repository.
+
+Once setup, execute the run script for the demo in your build directory:
+
+```sh
+$ make run/baseband_demo-tp_yoga_12 # or use run/baseband_demo-yoga_900
+```
+
+**WARNING: The next step will destroy all data on your USB drive or damage your system. BE CAREFUL!**
+
+Copy the resulting image `./var/run/baseband_demo-tp_yoga_12.partition.bak` (or
+`./var/run/baseband_demo-yoga_900.partition.bak`, respectively) onto the first
+partition of the prepared USB drive and use it to boot your system.
+
+```sh
+$ sudo dd if=./var/run/baseband_demo-tp_yoga_12.partition.bak of=/dev/sdX1 bs=1M
+```
+
+## Linux host
+
+The following scenarios run on your Linux host system without requiring a
+separate PC. The baseband phone is connected via USB as usual.
+
+**WARNING: This requires root privileges which can be harmful to your system. BE CAREFUL.**
+
+All three variants require a tap interface and VirtualBox must be set up to use
+it for networking. To manually create a TAP interface, the `tunctl` utility can
+be installed (found in the `uml-utilities` package in Debian-based distros).
+Create a TAP interface called `ril0`:
+
+```sh
+$ sudo tunctl -t ril0
+```
+
+Next, go to the *Settings* dialog of the Androix-x86 VM prepared earlier. In
+the *Network* menu check *Enable Network Adapter* and chose *Bridged Adapter*
+from the *Attached to* dropdown menu. Select the `ril0` network interfaces we
+just created. Make sure no other network adapters are enabled.
+
+## Genode/base-linux
+
+Follow the instructions for Genode/NOVA above on how to prepare a Genode build
+environement. Once setup, execute the run script for the base-linux demo in
+your build directory:
+
+```sh
+$ IF_AP=ril0 IF_BP=PHONE_IF make run/test/baseband_fw_linux.run
+```
+
+Instead of PHONE_IF, substitute the RNDIS network interface offered by the
+baseband phone. You should then see the baseband firewall component printing
+out log messages.
+
+Running the demo as ordinary user will fail with a permission denied error. The
+reason is, that opening raw sockets is a privileged operation. You can grant
+the respective components raw network permissions as follows:
+
+```sh
+$ sudo setcap cap_net_raw+ep ./app/linux_nic_raweth/client-linux_nic_raweth.stripped
+$ sudo setcap cap_net_raw+ep ./server/linux_nic_raweth/server-linux_nic_raweth.stripped
+```
+
+The demo script should then run as expected. Note, that you need to repeat the
+above step every time you clean you build directory or modify the source tree
+in a way that triggers a rebuild of the *raweth* components.
+
+## Linux network bridge
+
+You can connetect baseband phone and application VM without the intermediate
+baseband firewall using a Linux network bridge. To simplify the setup, you can
+use a script provided with the rilproxy repository:
+
+```sh
+$ sudo ./scripts/rilbridge.sh ril0 PHONE_IF
+```
+
+Instead of PHONE_IF, substitute the RNDIS network interface offered by the
+baseband phone.
+
+## Software bridge
+
+Similar to the Linux bridge, the software bridge from the rilproxy repository
+may be used to relay packets between the two interfaces. Build and run it from
+the `rilproxy` repository as follows:
+
+```sh
+$ make swbridge
+$ ./swbridge ril0 PHONE_IF
+```
+
+Instead of PHONE_IF, substitute the RNDIS network interface offered by the
+baseband phone.
+
+## Wireshark
+
+The Linux-based scenarios are idal to record the traffic between application
+processor and baseband processor at the Android RIL level. Simply use tcpdump
+or Wireshark on the ril0 interfaces. We provide a Wireshark dissector to
+further analyze recorded traffic. To install it perform the follwing steps:
+
+* Get the the Android RIL source:
+  `git clone https://android.googlesource.com/platform/hardware/ril`
+* Generate constants and definitions in `ril_h.lua`:
+  `./scripts/convert_ril_h.py --output ril_h.lua /path/to/ril/source/.../include/telephony/ril.h`
+* Copy `ril_h.lua` and `rilsocket.lua` to your Wireshark plugins directory
+
+The Wireshark plugins directory may differ between distros and Wireshark
+versions. Check *Help -> About Wireshark -> Directories -> Personal Plugins*
+for the right location.
