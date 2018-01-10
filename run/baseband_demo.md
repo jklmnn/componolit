@@ -190,9 +190,9 @@ To run the demo, check out our forked Genode source tree from
 [here](https://github.com/Componolit/genode/tree/baseband_fw_support_rndis) and
 set it up as described in the README. Adding the external
 [Componolit repository](https://github.com/Componolit/componolit.git) is analogous
-to adding the external Genode world repository, refer to [this documentation]
-(https://github.com/genodelabs/genode-world/blob/master/README). Make sure to
-check out the `baseband_fw branch` of the Componolit repository.
+to adding the external Genode world repository, refer to
+[this documentation](https://github.com/genodelabs/genode-world/blob/master/README).
+Make sure to check out the `baseband_fw branch` of the Componolit repository.
 
 Once setup, execute the run script for the demo in your build directory:
 
