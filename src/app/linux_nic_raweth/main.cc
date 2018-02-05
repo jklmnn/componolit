@@ -35,6 +35,8 @@ enum
     BUF_SIZE = Nic::Session::QUEUE_SIZE * PACKET_SIZE
 };
 
+static char tx_buffer[PACKET_SIZE];
+
 class Nic_raw::Forward_sock_base : public Genode::Thread
 {
     protected:
@@ -124,7 +126,6 @@ class Nic_raw::Forward_sock_rx : public Nic_raw::Forward_sock_base
             {
                 _eth._wait_for_packet();
 
-                char *tx_buffer[PACKET_SIZE];
                 Genode::memset(tx_buffer, 0, PACKET_SIZE);
 
                 ssize_t bytes_read = _eth._read(tx_buffer, PACKET_SIZE);
