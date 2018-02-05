@@ -5,6 +5,8 @@
 
 #include <timer_session/connection.h>
 
+#include <buffer_dump.h>
+
 #include <fw.h>
 
 namespace Baseband {
@@ -21,6 +23,7 @@ class Baseband::Firewall : public Nic_filter::Filter
         Genode::size_t filter(void *buffer, const void *data, const Genode::size_t size, Nic_filter::direction_t dir) override
         {
             const Genode::size_t bufsize = buffer_size(size);
+            Genode::log(__func__, Buffer_dump<Genode::uint32_t, 4>((Genode::uint32_t *)data, Genode::min(16, size / sizeof(Genode::uint32_t))));
             baseband_fw__filter_hook(buffer, data, bufsize, size, (int)dir);
             return bufsize;
         }
