@@ -35,6 +35,8 @@ enum
     BUF_SIZE = Nic::Session::QUEUE_SIZE * PACKET_SIZE
 };
 
+static char tx_buffer[PACKET_SIZE];
+
 class Nic_raw::Forward_sock_base : public Genode::Thread
 {
     protected:
@@ -124,14 +126,18 @@ class Nic_raw::Forward_sock_rx : public Nic_raw::Forward_sock_base
             {
                 _eth._wait_for_packet();
 
-                Nic::Packet_descriptor tx_packet = _nic.tx()->alloc_packet(PACKET_SIZE);
-                char *tx_buffer = _nic.tx()->packet_content(tx_packet);
+                Genode::memset(tx_buffer, 0, PACKET_SIZE);
+
                 ssize_t bytes_read = _eth._read(tx_buffer, PACKET_SIZE);
+
                 if (bytes_read < 0)
                 {
                     warning("Error reading packet: ", Genode::Cstring(strerror(errno)));
                     continue;
                 }
+                
+                Nic::Packet_descriptor tx_packet = _nic.tx()->alloc_packet(bytes_read);
+                Genode::memcpy(_nic.tx()->packet_content(tx_packet), tx_buffer, bytes_read);
 
                 _nic.tx()->submit_packet(tx_packet);
                 while (_nic.tx()->ack_avail())
