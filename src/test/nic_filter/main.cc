@@ -18,22 +18,14 @@ class Nic_filter_test::Filter : public Nic_filter::Filter
         
         Filter() : Nic_filter::Filter() { }
 
-        Genode::size_t filter(void *buffer, const void *data, const Genode::size_t size, Nic_filter::direction_t dir) override
+        void filter(const void *data, const Genode::size_t size, Nic_filter::direction_t dir, int iface) override
         {
             const bool known = dir != Nic_filter::UNKNOWN;
             const bool up = dir == Nic_filter::UP;
-            Genode::log((known && up) ? "<- " : "-> ", size, " bytes");
-            const Genode::size_t bufsize = buffer_size(size);
-            if(size > bufsize)
-                Genode::warning("insufficient buffer size ", bufsize, " < ", size);
-            nic_filter__filter(buffer, data, bufsize, size);
-            //Genode::memcpy(buffer, data, Genode::min(size, bufsize));
-            return bufsize;
-        }
-
-        Genode::size_t buffer_size(const Genode::size_t size) const override
-        {
-            return size;
+            Genode::uint8_t buffer[size];
+            //Genode::log((known && up) ? "<- " : "-> ", size, " bytes");
+            nic_filter__filter(buffer, data, size, size);
+            send(buffer, size, iface);
         }
 
 };
