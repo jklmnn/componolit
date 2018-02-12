@@ -17,6 +17,7 @@
 using namespace Net;
 using namespace Genode;
 
+static int iface_id = 0;
 
 void Interface::_handle_packet(void              *const  base,
                             size_t             const  size,
@@ -34,22 +35,31 @@ void Interface::_handle_packet(void              *const  base,
 void Interface::_send(void *base, Genode::size_t const size)
 {
 	try {
-                Genode::uint8_t buffer[_filter.buffer_size(size)];
                 Nic_filter::direction_t dir = Nic_filter::UNKNOWN;
                 if(_label == String<64>("bp"))
                     dir = Nic_filter::UP;
                 if(_label == String<64>("ap"))
                     dir = Nic_filter::DOWN;
-                Genode::size_t fsize = _filter.filter((void*)buffer, base, size, dir);
+                _filter.filter(base, size, dir, _id);
+                /*
 		Packet_descriptor const pkt = _source().alloc_packet(fsize);
 		char *content = _source().packet_content(pkt);
 		Genode::memcpy((void *)content, (void*)buffer, fsize);
 		_source().submit_packet(pkt);
+                */
 	}
 	catch (Packet_stream_source::Packet_alloc_failed) {
 		error("Failed to allocate packet"); }
 }
 
+void Interface::submit(void *buffer, Genode::size_t size, void *iface)
+{
+    Interface *ifc = (Interface *)iface;
+    Packet_descriptor const pkt = ifc->_source().alloc_packet(size);
+    void *content = ifc->_source().packet_content(pkt);
+    Genode::memcpy(content, buffer, size);
+    ifc->_source().submit_packet(pkt);
+}
 
 void Interface::_ready_to_submit()
 {
@@ -91,5 +101,7 @@ Interface::Interface(Entrypoint        &ep,
 	_source_submit(ep, *this, &Interface::_packet_avail),
 	_alloc(alloc), _label(label), _timer(timer), _curr_time(curr_time),
         _filter(filter),
+        _id(++iface_id),
+        _filter_if(_filter.registry(), this, &Interface::submit, _id),
 	_log_time(log_time)
 { }

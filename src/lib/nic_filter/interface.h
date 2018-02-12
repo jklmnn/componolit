@@ -53,6 +53,8 @@ class Net::Interface
 		Timer::Connection  &_timer;
 		Genode::Duration   &_curr_time;
                 Nic_filter::Filter &_filter;
+                int _id;
+                Nic_filter::Interface _filter_if;
 		bool                _log_time;
 
 		void _send(void*, Genode::size_t const eth_size);
@@ -86,6 +88,8 @@ class Net::Interface
                           Nic_filter::Filter &filter);
 
 		void remote(Interface &remote) { _remote.set(remote); }
+
+                static void submit(void *, Genode::size_t, void *);
 };
 
 #endif /* _INTERFACE_H_ */
