@@ -20,19 +20,14 @@ class Baseband::Firewall : public Nic_filter::Filter
         
         Firewall() : Nic_filter::Filter() { }
 
-        Genode::size_t filter(void *buffer, const void *data, const Genode::size_t size, Nic_filter::direction_t dir) override
+        void filter(const void *data, const Genode::size_t size, Nic_filter::direction_t dir, int iface) override
         {
-            const Genode::size_t bufsize = buffer_size(size);
+            const Genode::size_t bufsize = size;
+            Genode::uint8_t buffer[bufsize];
             Genode::log(__func__, Buffer_dump<Genode::uint32_t, 4>((Genode::uint32_t *)data, Genode::min(16, size / sizeof(Genode::uint32_t))));
             baseband_fw__filter_hook(buffer, data, bufsize, size, (int)dir);
-            return bufsize;
+            send(buffer, bufsize, iface);
         }
-
-        Genode::size_t buffer_size(const Genode::size_t size) const override
-        {
-            return size;
-        }
-
 };
 
 
