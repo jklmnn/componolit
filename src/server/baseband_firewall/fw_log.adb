@@ -3,20 +3,6 @@ is
 
 pragma Warnings (Off, "pragma Restrictions (No_Exception_Propagation) in effect");
 
-    procedure Hex_Dump (Value :        Fw_Types.Buffer;
-                        Dump  :    out String)
-    is
-        v : Fw_Types.Byte;
-    begin
-        Dump := (others => '~');
-        for i in 0 .. Value'Length - 1
-        loop
-            v := Value (Value'First + i);
-            Dump (Dump'First + i * 2)     := Hex (v and 16#0f#);
-            Dump (Dump'First + i * 2 + 1) := Hex ((v and 16#f0#) / 16);
-        end loop;
-    end Hex_Dump;
-
     function Directed_Arrow (Dir : Fw_Types.Direction) return Arrow
     is
         (case Dir is

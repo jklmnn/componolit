@@ -30,9 +30,8 @@ private
        Dir    :        Fw_Types.Direction;
        Result :    out Fw_Types.Status);
 
-    RIL_Proxy_Proto    : constant Fw_Types.Byte   := 16#11#;
-    RIL_Proxy_Port     : constant Fw_Types.Port   := (16#49#, 16#E0#);
-    RIL_Proxy_Setup    : constant Fw_Types.Buffer := (16#15#, 16#C7#, 16#00#, 16#00#);
-    RIL_Proxy_Teardown : constant Fw_Types.Buffer := (16#17#, 16#C7#, 16#00#, 16#00#);
+    RIL_Proxy_Ethtype  : constant Fw_Types.U16 := 16#524c#;
+    RIL_Proxy_Setup    : constant Fw_Types.U32 := 16#15c70000#;
+    RIL_Proxy_Teardown : constant Fw_Types.U32 := 16#17c70000#;
 
 end Baseband_Fw;

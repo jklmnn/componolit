@@ -3,7 +3,7 @@
 import re
 
 def to_struct (value):
-    return "Fw_Types.Buffer'(16#%2.2x#, 16#%2.2x#, 16#%2.2x#, 16#%2.2x#)" % \
+    return "Fw_Types.Buffer'(16#%2.2x%2.2x%2.2x%2.2x#)" % \
         ((value & 0x000000ff) >>  0,
          (value & 0x0000ff00) >>  8,
          (value & 0x00ff0000) >> 16,
