@@ -6,8 +6,8 @@ package Baseband_Fw is
     procedure Filter_Hook
       (Dest      : System.Address;
        Src       : System.Address;
-       Dest_Size : Integer;
-       Src_Size  : Integer;
+       Dest_Size : Fw_Types.U32;
+       Src_Size  : Fw_Types.U32;
        Dir       : Integer);
 
 private

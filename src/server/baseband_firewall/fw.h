@@ -4,7 +4,7 @@
 
 extern "C" {
 
-void baseband_fw__filter_hook(void*, const void*, const int, const int, const int);
+void baseband_fw__filter_hook(void*, const void*, const unsigned, const unsigned, const int);
 
 // gnat exceptions
 

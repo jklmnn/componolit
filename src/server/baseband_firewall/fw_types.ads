@@ -1,4 +1,3 @@
-with System;
 
 package Fw_Types
 is
@@ -24,12 +23,12 @@ is
 
     function Exp
         (Base     : U32;
-         Exponent : U32) return U32
+         Exponent : U32) return U64
     with
         Pre  => Exponent <= U32 (Natural'Last),
-        Post => (Exp'Result = Base ** Natural (Exponent));
+        Post => (Exp'Result = U64 (Base ** Natural (Exponent)));
 
-    type Buffer is array (Integer range <>) of U08;
+    type Buffer is array (U32 range <>) of U08;
 
     type Mac is
         record
@@ -39,7 +38,8 @@ is
             NIC_0 : U08;
             NIC_1 : U08;
             NIC_2 : U08;
-        end record;
+        end record with
+      Size => 48;
 
     for Mac use
         record
@@ -50,47 +50,41 @@ is
             NIC_1 at 4 range 0 .. 7;
             NIC_2 at 5 range 0 .. 7;
         end record;
-    for Mac'Size use 48;
-    for Mac'Bit_Order use System.High_Order_First;
-    for Mac'Scalar_Storage_Order use System.High_Order_First;
 
     type Eth is
-    record
-        Source      : Mac;
-        Destination : Mac;
-        Ethtype     : U16;
-    end record;
+        record
+            Destination : Mac;
+            Source      : Mac;
+            Ethtype     : U16;
+        end record with
+      Size => 112;
 
     for Eth use
         record
-            Source      at  0 range 0 .. 47;
-            Destination at  6 range 0 .. 47;
+            Destination at  0 range 0 .. 47;
+            Source      at  6 range 0 .. 47;
             Ethtype     at 12 range 0 .. 15;
         end record;
-    for Eth'Size use 112;
-    for Eth'Bit_Order use System.High_Order_First;
-    for Eth'Scalar_Storage_Order use System.High_Order_First;
 
     type Sl3p is
         record
             Sequence_number : U64;
             Length : U32;
-        end record;
+        end record with
+      Size => 96;
 
     for Sl3p use
       record
             Sequence_Number at 0 range 0 .. 63;
             Length          at 8 range 0 .. 31;
       end record;
-    for Sl3p'Size use 96;
-    for Sl3p'Bit_Order use System.High_Order_First;
-    for Sl3p'Scalar_Storage_Order use System.High_Order_First;
 
     type RIL is record
         Length      : U32;
         ID          : U32;
         Token_Event : U32;
-    end record;
+    end record with
+      Size => 96;
 
     for RIL use
         record
@@ -98,15 +92,13 @@ is
             ID          at 4 range 0 .. 31;
             Token_Event at 8 range 0 .. 31;
         end record;
-    for RIL'Size use 96;
-    for RIL'Bit_Order use System.High_Order_First;
-    for RIL'Scalar_Storage_Order use System.High_Order_First;
 
     type Packet is record
         Eth_Header : Eth;
         Sl3p_Header : Sl3p;
         RIL_Header : RIL;
-    end record;
+    end record with
+      Size => 304;
 
     for Packet use
         record
@@ -114,7 +106,6 @@ is
             Sl3p_header at 14 range 0 ..  95;
             RIL_Header  at 26 range 0 ..  95;
         end record;
-    for Packet'Size use 304;
 
     type Direction is (Unknown, BP, AP);
     for Direction use (Unknown => 0, BP => 1, AP => 2);

@@ -7,14 +7,14 @@ is
     -- Int_Value --
     ---------------
 
-    function Exp (Base : U32; Exponent : U32) return U32
+    function Exp (Base : U32; Exponent : U32) return U64
     is
-        Ret : U32 := 1;
+        Ret : U64 := 1;
     begin
         for i in 1 .. Exponent
         loop
-            Ret := Ret * Base;
-            --  pragma Loop_Invariant (Ret = Base ** Natural (i));
+            Ret := Ret * U64 (Base);
+            --  pragma Loop_Invariant (Ret = U64 (Base ** Natural (i)));
         end loop;
         return Ret;
     end Exp;
