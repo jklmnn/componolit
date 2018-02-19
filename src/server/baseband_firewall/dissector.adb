@@ -13,6 +13,7 @@ is
         value : UXX := 0;
     begin
         for i in Fw_Types.U32 range 0 .. (UXX'Size / 8) - 1 loop
+            pragma Loop_Invariant (buffer'Length > (UXX'Size / 8) - 1);
             value := value + UXX (buffer (buffer'Last - Fw_Types.U32 (i))) * UXX (Fw_Types.Exp (256, i));
         end loop;
         return value;
@@ -31,7 +32,12 @@ is
        return Fw_Types.Eth
     is
         header : Fw_Types.Eth;
+        ethtype : Fw_Types.Buffer (0 .. 1) := (0, 0);
     begin
+        ethtype (0) := buffer (buffer'First + 12);
+        ethtype (1) := buffer (buffer'First + 13);
+
+        pragma Assert (buffer'First + 13 <= buffer'Last);
         header.Destination.OUI_0 := buffer (buffer'First + 0);
         header.Destination.OUI_1 := buffer (buffer'First + 1);
         header.Destination.OUI_2 := buffer (buffer'First + 2);
@@ -46,7 +52,9 @@ is
         header.Source.NIC_1 := buffer (buffer'First + 10);
         header.Source.NIC_2 := buffer (buffer'First + 11);
 
-        header.Ethtype := U16_Be (buffer (buffer'First + 12 .. buffer'First + 13));
+        pragma Assert (Fw_Types.U16'Size / 8 = 2);
+        pragma Assert (ethtype'Length = 2);
+        header.Ethtype := U16_Be (ethtype);
 
         return header;
     end Eth_Be;

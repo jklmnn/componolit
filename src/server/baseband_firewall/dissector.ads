@@ -13,7 +13,7 @@ is
                      return Fw_Types.Eth
       with
         Depends => (Eth_Be'Result => buffer),
-      Pre => buffer'Length >= Fw_Types.Eth'Size / 8;
+      Pre => buffer'Length >= 14;
 
     function Sl3p_Be (buffer : Fw_Types.Buffer)
                       return Fw_Types.Sl3p
@@ -31,7 +31,8 @@ is
                     return Boolean
       with
         Depends => (Valid'Result => (header, payload)),
-        Post => (if payload'Length <= 1500 and payload'Length >= 46
+        Post => (if payload'Length <= 1500 and payload'Length >= 46 and
+                   header.Source.NIC_2 /= 0
                    then Valid'Result else Valid'Result = False);
 
     function Valid (header : Fw_Types.Sl3p; payload : Fw_Types.Buffer; sequence : Fw_Types.U64)
