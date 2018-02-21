@@ -1,0 +1,79 @@
+# RTC test
+
+set build_components {
+    core init
+    server/sntp
+    drivers/timer
+    test/rtc
+    drivers/nic
+}
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+append_platform_drv_build_components
+
+build $build_components
+
+create_boot_directory
+
+set config {
+<config prio_levels="2" verbose="yes">
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<default caps="100"/>
+	
+        <start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Timer"/> </provides>
+	</start>
+
+	<start name="sntp">
+		<resource name="RAM" quantum="8M"/>
+		<provides><service name="Rtc"/></provides>
+                <config>
+                    <sntp host="0.pool.ntp.org" timeout="1000000"/>
+                </config>
+	</start>
+
+	<start name="test-rtc" priority="-1">
+		<resource name="RAM" quantum="1M"/>
+	</start>
+
+	<start name="nic_drv">
+		<resource name="RAM" quantum="6M"/>
+		<provides><service name="Nic"/></provides>
+	</start>
+}
+
+append_platform_drv_config
+
+append config {
+</config>
+}
+
+install_config $config
+
+set boot_modules {
+    core ld.lib.so init
+    libc.lib.so lwip.lib.so
+    timer
+    test-rtc sntp nic_drv
+}
+
+append_platform_drv_boot_modules
+
+build_boot_image $boot_modules
+
+append qemu_args " -nographic -net nic,model=e1000 -net user"
+
+run_genode_until ".*--- RTC test finished ---.*\n" 120
