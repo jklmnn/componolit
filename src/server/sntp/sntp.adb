@@ -6,6 +6,8 @@ package body sntp
 with
 SPARK_Mode => On
 is
+    
+    pragma Warnings (Off, "pragma Restrictions (No_Exception_Propagation) in effect");
 
     function c_connect(Host : System.Address; Length : Integer; Ai : libc_types.Addrinfo)
                        return libc_types.Socket
@@ -74,7 +76,9 @@ is
             if Sent > 0 then
                 libc.Recv(Sock, Msg, Ai, Timeout, Received);
                 if Received > 0 then
-                    Ts := sntp_types.Unix_Epoch(Msg.Transmit_Timestamp_Sec);
+                    if sntp_types.Valid_Sntp_Timestamp(Msg.Transmit_Timestamp_Sec) then
+                        Ts := sntp_types.Unix_Epoch(Msg.Transmit_Timestamp_Sec);
+                    end if;
                 end if;
             end if;
         end if;

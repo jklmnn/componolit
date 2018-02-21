@@ -5,6 +5,8 @@ with
 SPARK_Mode => On
 is
 
+    pragma Warnings (Off, "pragma Restrictions (No_Exception_Propagation) in effect");
+
     type Leap_Indicator is ( NoWarning, SixtyOneSec, FiftyOneSec, AlarmCondition );
     for Leap_Indicator use ( 0, 1, 2, 3 );
 
@@ -16,11 +18,18 @@ is
 
     type Byte is mod 2**8;
 
-    type Timestamp is mod 2**32;
+    type Timestamp is new Long_Integer range 0 .. (2 ** 32) - 1
+      with Size => 32;
+
+    function Valid_Sntp_Timestamp(ts : Timestamp) return Boolean
+    is
+      (ts > 2208988800 and ts < Timestamp'Last)
+    with Post => Valid_Sntp_Timestamp'Result = (ts > 2208988800 and ts < Timestamp'Last);
 
     function Unix_Epoch(net : Timestamp) return Timestamp
     is
-        (net - 2208988800);
+      (net - 2208988800)
+    with Pre => Valid_Sntp_Timestamp(net);
 
     type Message is
         record
