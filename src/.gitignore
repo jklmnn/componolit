@@ -2,4 +2,8 @@
 *.o
 *.adb.stderr
 *.adb.stdout
+*.ads.stderr
+*.ads.stdout
 gnatprove
+gnatinspect.db
+gpsauto.cgpr
