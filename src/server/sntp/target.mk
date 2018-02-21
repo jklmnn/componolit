@@ -7,3 +7,4 @@ INC_DIR += $(PRG_DIR)
 
 CC_CXX_WARN_STRICT =
 
+include $(REP_DIR)/mk/gnat_opts.mk
