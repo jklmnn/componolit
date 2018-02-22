@@ -1,88 +1,109 @@
-with libc;
-with libc_types;
-with sntp_types;
-use all type libc_types.Addrinfo;
-use all type sntp_types.Timestamp;
+with Libc;
+with Libc_Types;
+with Sntp_Types;
+with System;
+use all type Libc_Types.Addrinfo;
+use all type Sntp_Types.Timestamp;
+use all type System.Address;
 
-package body sntp
+package body Sntp
 with
 SPARK_Mode => On
 is
 
     pragma Warnings (Off, "pragma Restrictions (No_Exception_Propagation) in effect");
 
-    function c_connect (Host : System.Address; Length : Integer; Ai : libc_types.Addrinfo)
-                       return libc_types.Socket
+    function C_Connect (
+                        Host   : System.Address;
+                        Length : Integer;
+                        Ai     : Libc_Types.Addrinfo
+                       ) return Libc_Types.Socket
       with
         SPARK_Mode => Off
     is
         S_Host : String (1 .. Length);
         for S_Host'Address use Host;
-        Sock : libc_types.Socket := -42;
+        Sock   : Libc_Types.Socket := -42;
     begin
-        if System."/=" (Host, System.Null_Address) then
-            Sock := connect (S_Host, Ai);
+        if Host /= System.Null_Address then
+            Sock := Connect (S_Host, Ai);
         end if;
         return Sock;
-    end c_connect;
+    end C_Connect;
 
-    function connect (Host : String; Ai : libc_types.Addrinfo) return libc_types.Socket
+    function Connect (
+                      Host : String;
+                      Ai   : Libc_Types.Addrinfo
+                     ) return Libc_Types.Socket
     is
-        Sock : libc_types.Socket := -42;
+        Sock : Libc_Types.Socket := -42;
     begin
-        if Ai /= libc_types.Null_Address then
-            if libc.getaddrinfo (Host, Ai) = 0 then
-                Sock := libc.getsocket (Ai);
+        if Ai /= Libc_Types.Null_Address then
+            if Libc.Getaddrinfo (Host, Ai) = 0 then
+                Sock := Libc.Getsocket (Ai);
             end if;
         end if;
         return Sock;
-    end connect;
+    end Connect;
 
-    function c_get_time (Sock : libc_types.Socket; Ai : libc_types.Addrinfo; Timeout : Long_Integer)
-                        return sntp_types.Timestamp
+    function C_Get_Time (
+                         Sock    : Libc_Types.Socket;
+                         Ai      : Libc_Types.Addrinfo;
+                         Timeout : Long_Integer
+                        ) return Sntp_Types.Timestamp
       with
         SPARK_Mode => Off
     is
-        Ts : sntp_types.Timestamp;
+        Ts : Sntp_Types.Timestamp;
     begin
-        get_time (Sock, Ai, Timeout, Ts);
+        Get_Time (Sock, Ai, Timeout, Ts);
         return Ts;
-    end c_get_time;
+    end C_Get_Time;
 
-    procedure get_time (Sock : libc_types.Socket; Ai : libc_types.Addrinfo; Timeout : Long_Integer;
-                       Ts : out sntp_types.Timestamp)
+    procedure Get_Time (
+                        Sock    : Libc_Types.Socket;
+                        Ai      : Libc_Types.Addrinfo;
+                        Timeout : Long_Integer;
+                        Ts      : out Sntp_Types.Timestamp
+                       )
     is
-        procedure Flush (S : libc_types.Socket; A : libc_types.Addrinfo);
-        procedure Flush (S : libc_types.Socket; A : libc_types.Addrinfo)
+        procedure Flush (
+                         S : Libc_Types.Socket;
+                         A : Libc_Types.Addrinfo
+                        );
+        procedure Flush (
+                         S : Libc_Types.Socket;
+                         A : Libc_Types.Addrinfo
+                        )
         is
             Msg_Size : constant Long_Integer := 48;
             Received : Long_Integer := Msg_Size;
-            Msg : sntp_types.Message;
+            Msg      : Sntp_Types.Message;
         begin
             while Received >= Msg_Size loop
-                libc.Recv (S, Msg, A, 0, Received);
+                Libc.Recv (S, Msg, A, 0, Received);
                 Recv_Buffer := Msg;
             end loop;
         end Flush;
 
-        Msg : sntp_types.Message := (Leap => sntp_types.AlarmCondition,
-                                     Version => 2, Mode => sntp_types.Client,
-                                     Poll => 4, Precision => 0, Root_Delay => 0,
-                                     Root_Dispersion => 0, Stratum => 0, others => 0);
-        Sent : Long_Integer;
+        Msg      : Sntp_Types.Message := (Leap => Sntp_Types.AlarmCondition,
+                                          Version => 2, Mode => Sntp_Types.Client,
+                                          Poll => 4, Precision => 0, Root_Delay => 0,
+                                          Root_Dispersion => 0, Stratum => 0, others => 0);
+        Sent     : Long_Integer;
         Received : Long_Integer;
     begin
         Ts := 0;
-        if Sock >= 0 and Ai /= libc_types.Null_Address then
+        if Sock >= 0 and Ai /= Libc_Types.Null_Address then
             Flush (Sock, Ai);
-            libc.Send (Sock, Msg, Ai, Sent);
+            Libc.Send (Sock, Msg, Ai, Sent);
             if Sent > 0 then
-                libc.Recv (Sock, Msg, Ai, Timeout, Received);
-                if Received > 0 and then sntp_types.Valid_Sntp_Timestamp (Msg.Transmit_Timestamp_Sec) then
+                Libc.Recv (Sock, Msg, Ai, Timeout, Received);
+                if Received > 0 and then Sntp_Types.Valid_Sntp_Timestamp (Msg.Transmit_Timestamp_Sec) then
                     Ts := Msg.Transmit_Timestamp_Sec - 2208988800;
                 end if;
             end if;
         end if;
-    end get_time;
+    end Get_Time;
 
-end sntp;
+end Sntp;

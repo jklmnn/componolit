@@ -1,30 +1,46 @@
-with sntp_types;
-with libc_types;
+with Sntp_Types;
+with Libc_Types;
+use all type Libc_Types.Addrinfo;
+use all type Libc_Types.Socket;
 
-package libc
+package Libc
 with
 SPARK_Mode => On
 is
 
-    function getaddrinfo (Address : String; Ai : libc_types.Addrinfo) return Integer
+    function Getaddrinfo (
+                          Address : String;
+                          Ai      : Libc_Types.Addrinfo
+                         ) return Integer
       with
         Pre => Address'Last < Integer'Last and
-        libc_types."/=" (Ai, libc_types.Null_Address);
+        Ai /= Libc_Types.Null_Address;
 
-    function getsocket (Ai : libc_types.Addrinfo) return libc_types.Socket
+    function Getsocket (
+                        Ai : Libc_Types.Addrinfo
+                       ) return Libc_Types.Socket
       with
-        Pre => libc_types."/=" (Ai, libc_types.Null_Address);
+        Pre => Ai /= Libc_Types.Null_Address;
 
-    procedure Send (Sock : libc_types.Socket; Msg : sntp_types.Message;
-                   Ai : libc_types.Addrinfo; Sent : out Long_Integer)
+    procedure Send (
+                    Sock : Libc_Types.Socket;
+                    Msg  : Sntp_Types.Message;
+                    Ai   : Libc_Types.Addrinfo;
+                    Sent : out Long_Integer
+                   )
       with
-        Pre => libc_types.">=" (Sock, 0) and
-      libc_types."/=" (Ai, libc_types.Null_Address);
+        Pre => Sock >= 0 and
+      Ai /= Libc_Types.Null_Address;
 
-    procedure Recv (Sock : libc_types.Socket; Msg : out sntp_types.Message;
-                   Ai : libc_types.Addrinfo; Timeout : Long_Integer; Received : out Long_Integer)
+    procedure Recv (
+                    Sock     : Libc_Types.Socket;
+                    Msg      : out Sntp_Types.Message;
+                    Ai       : Libc_Types.Addrinfo;
+                    Timeout  : Long_Integer;
+                    Received : out Long_Integer
+                   )
       with
-        Pre => libc_types.">=" (Sock, 0) and
-      libc_types."/=" (Ai, libc_types.Null_Address);
+        Pre => Sock >= 0 and
+      Ai /= Libc_Types.Null_Address;
 
-end libc;
+end Libc;
