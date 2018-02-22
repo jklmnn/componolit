@@ -1,51 +1,64 @@
 with System;
-with libc_import;
+with Libc_Import;
 
-package body libc
+package body Libc
 with
 SPARK_Mode => On
 is
 
     pragma Warnings (Off, "pragma Restrictions (No_Exception_Propagation) in effect");
 
-    function getaddrinfo (Address : String; Ai : libc_types.Addrinfo) return Integer
+    function Getaddrinfo (
+                          Address : String;
+                          Ai      : Libc_Types.Addrinfo
+                         ) return Integer
       with
         SPARK_Mode => Off
     is
         C_Address : String := Address & Character'Val (0);
     begin
-        return libc_import.lc_getaddrinfo (C_Address'Address,
+        return Libc_Import.Lc_Getaddrinfo (C_Address'Address,
                                            System.Address (Ai));
-    end getaddrinfo;
+    end Getaddrinfo;
 
-    function getsocket (Ai : libc_types.Addrinfo) return libc_types.Socket
+    function Getsocket (
+                        Ai : Libc_Types.Addrinfo
+                       ) return Libc_Types.Socket
       with
         SPARK_Mode => Off
     is
     begin
-        return libc_types.Socket (libc_import.lc_socket (System.Address (Ai)));
-    end getsocket;
+        return Libc_Types.Socket (Libc_Import.Lc_Socket (System.Address (Ai)));
+    end Getsocket;
 
-    procedure Send (Sock : libc_types.Socket; Msg : sntp_types.Message;
-                   Ai : libc_types.Addrinfo; Sent : out Long_Integer)
+    procedure Send (
+                    Sock : Libc_Types.Socket;
+                    Msg  : Sntp_Types.Message;
+                    Ai   : Libc_Types.Addrinfo;
+                    Sent : out Long_Integer
+                   )
       with
         SPARK_Mode => Off
     is
     begin
-        Sent := libc_import.lc_send (Integer (Sock),
-                                     Msg'Address, sntp_types.Message'Size / 8,
+        Sent := Libc_Import.Lc_Send (Integer (Sock),
+                                     Msg'Address, Sntp_Types.Message'Size / 8,
                                      System.Address (Ai));
     end Send;
 
-    procedure Recv (Sock : libc_types.Socket; Msg : out sntp_types.Message;
-                   Ai : libc_types.Addrinfo; Timeout : Long_Integer;
-                   Received : out Long_Integer)
+    procedure Recv (
+                    Sock     : Libc_Types.Socket;
+                    Msg      : out Sntp_Types.Message;
+                    Ai       : Libc_Types.Addrinfo;
+                    Timeout  : Long_Integer;
+                    Received : out Long_Integer
+                   )
       with SPARK_Mode => Off
     is
     begin
-        Received := libc_import.lc_recv (Integer (Sock),
+        Received := Libc_Import.Lc_Recv (Integer (Sock),
                                          Msg'Address, Msg'Size / 8,
                                          System.Address (Ai), Timeout);
     end Recv;
 
-end libc;
+end Libc;

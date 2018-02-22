@@ -1,30 +1,44 @@
 with System;
-with libc_types;
-with sntp_types;
+with Libc_Types;
+with Sntp_Types;
 
-use all type libc_types.Socket;
+use all type Libc_Types.Socket;
 
-package sntp
+package Sntp
 with
-    SPARK_Mode => On
+SPARK_Mode => On
 is
 
-    function c_connect (Host : System.Address; Length : Integer; Ai : libc_types.Addrinfo)
-                       return libc_types.Socket;
-    function connect (Host : String; Ai : libc_types.Addrinfo) return libc_types.Socket
+    function C_Connect (
+                        Host   : System.Address;
+                        Length : Integer;
+                        Ai     : Libc_Types.Addrinfo
+                       ) return Libc_Types.Socket;
+
+    function Connect (
+                      Host : String;
+                      Ai   : Libc_Types.Addrinfo
+                     ) return Libc_Types.Socket
       with
         Pre => Host'Last < Integer'Last,
-        Depends => (connect'Result => (Host, Ai));
+        Depends => (Connect'Result => (Host, Ai));
 
-    function c_get_time (Sock : libc_types.Socket; Ai : libc_types.Addrinfo; Timeout : Long_Integer)
-                       return sntp_types.Timestamp;
+    function C_Get_Time (
+                         Sock    : Libc_Types.Socket;
+                         Ai      : Libc_Types.Addrinfo;
+                         Timeout : Long_Integer
+                        ) return Sntp_Types.Timestamp;
 
-    procedure get_time (Sock : libc_types.Socket; Ai : libc_types.Addrinfo; Timeout : Long_Integer;
-                       Ts : out sntp_types.Timestamp)
+    procedure Get_Time (
+                        Sock    : Libc_Types.Socket;
+                        Ai      : Libc_Types.Addrinfo;
+                        Timeout : Long_Integer;
+                        Ts      : out Sntp_Types.Timestamp
+                       )
       with Depends => (Ts => (Sock, Ai, Timeout), Recv_Buffer =>+ (Sock, Ai));
 
-    Recv_Buffer : sntp_types.Message;
+    Recv_Buffer : Sntp_Types.Message;
 
     pragma Volatile (Recv_Buffer);
 
-end sntp;
+end Sntp;
