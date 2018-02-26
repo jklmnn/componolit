@@ -13,13 +13,15 @@ is
 
     pragma Warnings (Off, "pragma Restrictions (No_Exception_Propagation) in effect");
 
-    function Filter_Hook (
+    procedure Filter_Hook (
                            Dest      : System.Address;
                            Src       : System.Address;
                            Dest_Size : Fw_Types.U32;
                            Src_Size  : Fw_Types.U32;
-                           Dir       : Integer
-                          ) return Integer
+                           Dir       : Integer;
+                           Firewall  : System.Address;
+                           Iface     : Integer
+                          )
       with
         SPARK_Mode => Off
     is
@@ -29,10 +31,8 @@ is
         Src_Buf : Fw_Types.Buffer (0 .. Src_Size);
         for Src_Buf'Address use Src;
 
-        Ready : Integer;
     begin
-        Filter (Src_Buf, Dest_Buf, Fw_Types.Direction'Val (Dir), Ready);
-        return Ready;
+        Filter (Src_Buf, Dest_Buf, Fw_Types.Direction'Val (Dir), Firewall, Iface);
     end Filter_Hook;
 
     procedure Copy (
@@ -41,7 +41,7 @@ is
                    )
     is
     begin
-        Dest := Src;
+        Dest (Dest'First .. Dest'First + Src'Length - 1) := Src (Src'First .. Src'First + Src'Length - 1);
     end Copy;
 
     procedure Analyze (
@@ -54,7 +54,6 @@ is
         Source_Eth : constant Fw_Types.Eth := Dissector.Eth_Be (Source);
         Source_Sl3p : Fw_Types.Sl3p;
         Status : Dissector.Result;
-        --  Msg    : Fw_Types.U32;
     begin
 
         Result := Fw_Types.Accepted;
@@ -106,10 +105,11 @@ is
 
     --  FIXME: We should do the conversion from Packet -> Buffer in SPARK!
     procedure Filter (
-                      Source_Buffer      :        Fw_Types.Buffer;
-                      Destination_Buffer :    out Fw_Types.Buffer;
-                      Direction          :        Fw_Types.Direction;
-                      Ready              : out Integer
+                      Source_Buffer      : Fw_Types.Buffer;
+                      Destination_Buffer : out Fw_Types.Buffer;
+                      Direction          : Fw_Types.Direction;
+                      Firewall           : System.Address;
+                      Iface              : Integer
                      )
     is
         Packet_Status : Fw_Types.Status;
@@ -119,10 +119,10 @@ is
         is
             when Fw_Types.Accepted =>
                 Copy (Src => Source_Buffer, Dest => Destination_Buffer);
-                Ready := 1;
+                submit (Firewall, Source_Buffer'Length, Iface);
             when Fw_Types.Rejected =>
                 --  Copy (Src => Source_Buffer, Dest => Destination_Buffer);
-                Ready := 0;
+                null;
         end case;
     end Filter;
 

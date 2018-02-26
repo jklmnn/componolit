@@ -12,24 +12,32 @@
 namespace Baseband {
     class Firewall;
     struct Main;
+    enum {
+        BUFSIZE = 4096
+    };
 }
 
 class Baseband::Firewall : public Nic_filter::Filter
 {
+
+    private:
+
+        Genode::uint8_t buffer[2 * BUFSIZE];
+
     public:
         
         Firewall() : Nic_filter::Filter() { }
+        
+        static void submit(void *self, unsigned size, int iface)
+        {
+            ((Firewall *)self)->send(((Firewall *)self)->buffer, size, iface);
+        }
 
         void filter(const void *data, const Genode::size_t size, Nic_filter::direction_t dir, int iface) override
         {
-            const Genode::size_t bufsize = size;
-            Genode::uint8_t buffer[bufsize];
             int select_send = 0;
             //Genode::log(__func__, Buffer_dump<Genode::uint32_t, 4>((Genode::uint32_t *)data, Genode::min(16, size / sizeof(Genode::uint32_t))));
-            select_send = baseband_fw__filter_hook(buffer, data, bufsize, size, (int)dir);
-            if(select_send){
-                send(buffer, bufsize, iface);
-            }
+            baseband_fw__filter_hook(buffer, data, sizeof(buffer), size, (int)dir, this, iface);
         }
 };
 
@@ -53,3 +61,13 @@ void Component::construct(Genode::Env &env)
     env.exec_static_constructors();
     static Baseband::Main main(env);
 }
+
+extern "C" {
+    
+    void submit(void *fw, unsigned size, int iface)
+    {
+        Baseband::Firewall::submit(fw, size, iface);
+    }
+
+};
+
