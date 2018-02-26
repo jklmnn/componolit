@@ -101,26 +101,27 @@ is
                     Header : Fw_Types.Eth;
                     Payload : Fw_Types.Buffer;
                     Dir     : Fw_Types.Direction
-                   ) return Boolean
+                   ) return Result
     is
-        v : Boolean := Payload'Length <= 1500;
+        v : Result := Unchecked;
     begin
-        v := v and Payload'Length >= 46;
+        Check_Condition (v, Payload'Length <= 1500, Payload_To_Long);
+        Check_Condition (v, Payload'Length >= 46, Payload_To_Short);
         --  Mac address : 2a:43:4d:50:2a:0(a|b)
-        v := v and Header.Source.OUI_0 = 16#2a#;
-        v := v and Header.Source.OUI_1 = 16#43#;
-        v := v and Header.Source.OUI_2 = 16#4d#;
-        v := v and Header.Source.NIC_0 = 16#50#;
-        v := v and Header.Source.NIC_1 = 16#2a#;
+        Check_Condition (v, Header.Source.OUI_0 = 16#2a#, Forbidden_Address);
+        Check_Condition (v, Header.Source.OUI_1 = 16#43#, Forbidden_Address);
+        Check_Condition (v, Header.Source.OUI_2 = 16#4d#, Forbidden_Address);
+        Check_Condition (v, Header.Source.NIC_0 = 16#50#, Forbidden_Address);
+        Check_Condition (v, Header.Source.NIC_1 = 16#2a#, Forbidden_Address);
         case Dir is
             when Fw_Types.BP =>
-                v := v and Header.Source.NIC_2 = 16#0b#;
+                Check_Condition (v, Header.Source.NIC_2 = 16#0b#, Invalid_Direction);
             when Fw_Types.AP =>
-                v := v and Header.Source.NIC_2 = 16#0a#;
+                Check_Condition (v, Header.Source.NIC_2 = 16#0a#, Invalid_Direction);
             when others =>
-                v := False;
+                Check_Condition (v, False, Invalid_Direction);
         end case;
-        return v;
+        return (if v = Unchecked then Checked else v);
     end Valid;
 
     -----------
@@ -131,18 +132,19 @@ is
                     Header   : Fw_Types.Sl3p;
                     Payload  : Fw_Types.Buffer;
                     Sequence : Fw_Types.U64
-                   ) return Boolean
+                   ) return Result
     is
-        v : Boolean := Header.Sequence_number > 0;
+        v : Result := Unchecked;
     begin
-        v := v and (Header.Sequence_number > Sequence);
-        v := v and Header.Length <= 1488;
+        Check_Condition (v, Header.Sequence_number > 0, Invalid_Sequence_Number);
+        Check_Condition (v, Header.Sequence_number > Sequence, Invalid_Sequence_Number);
+        Check_Condition (v, Header.Length <= 1488, Invalid_Size);
         if Header.Length <= 34 then
-            v := v and Payload'Length = 34;
+            Check_Condition (v, Payload'Length = 34, Invalid_Size);
         else
-            v := v and (Payload'Length = Header.Length);
+            Check_Condition (v, Payload'Length = Header.Length, Invalid_Size);
         end if;
-        return v;
+        return (if v = Unchecked then Checked else v);
     end Valid;
 
     -----------
@@ -150,13 +152,53 @@ is
     -----------
 
     function Valid (
-                    Header : Fw_Types.RIL;
+                    Header  : Fw_Types.RIL;
                     Payload : Fw_Types.Buffer
-                   ) return Boolean
+                   ) return Result
     is
-        v : constant Boolean := Header.Length = Payload'Length;
+        v : Result := Unchecked;
     begin
-        return v;
+        Check_Condition (v, Header.Length = Payload'Length, Invalid_Size);
+        return (if v = Unchecked then Checked else v);
     end Valid;
+
+    procedure Check_Condition (
+                               Status : in out Result;
+                               Condition : Boolean;
+                               Result_On_False : Result
+                              )
+    is
+    begin
+        if Status = Unchecked then
+            Status := (if Condition then Status else Result_On_False);
+        end if;
+    end Check_Condition;
+
+    function Image (
+                    R : Result
+                   ) return Result_String
+    is
+        RS : Result_String;
+    begin
+        case R is
+            when Checked =>
+                RS := "Checked";
+            when Unchecked =>
+                RS := "Uncheck";
+            when Payload_To_Short =>
+                RS := "Pl_Shrt";
+            when Payload_To_Long =>
+                RS := "Pl_Long";
+            when Invalid_Sequence_Number =>
+                RS := "Inv_Seq";
+            when Invalid_Size =>
+                RS := "Inv_Siz";
+            when Invalid_Direction =>
+                RS := "Inv_Dir";
+            when Forbidden_Address =>
+                RS := "Fb_Addr";
+        end case;
+        return RS;
+    end Image;
 
 end Dissector;
