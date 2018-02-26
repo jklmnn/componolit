@@ -6,6 +6,7 @@ use all type Fw_Types.U16;
 use all type Fw_Types.U32;
 use all type Fw_Types.Direction;
 use all type Fw_Types.Status;
+use all type Dissector.Result;
 
 package body Baseband_Fw
 is
@@ -51,6 +52,8 @@ is
     is
         Arrow  : constant Fw_Log.Arrow := Fw_Log.Directed_Arrow (Dir);
         Source_Eth : constant Fw_Types.Eth := Dissector.Eth_Be (Source);
+        Source_Sl3p : Fw_Types.Sl3p;
+        Status : Dissector.Result;
         --  Msg    : Fw_Types.U32;
     begin
 
@@ -65,9 +68,18 @@ is
                             & Fw_Types.Image (Source_Eth.Source.NIC_1) & ":"
                             & Fw_Types.Image (Source_Eth.Source.NIC_2)
                            );
-            if not Dissector.Valid (Source_Eth, Source, Dir) then
-                Genode_Log.Log ("Invalid packet");
+            Status := Dissector.Valid (Source_Eth, Source, Dir);
+            if Status /= Dissector.Checked then
+                Genode_Log.Log ("Invalid packet: " & Dissector.Image (Status));
                 Result := Fw_Types.Rejected;
+            else
+                Source_Sl3p := Dissector.Sl3p_Be (Source (Source'First +
+                                                    Fw_Types.Eth_Offset .. Source'Last));
+                Status := Dissector.Valid (Source_Sl3p,
+                                           Source (Source'First +
+                                               Fw_Types.Eth_Offset +
+                                                 Fw_Types.Sl3p_Offset .. Source'Last),
+                                           Sequence (Dir));
             end if;
         end if;
 
