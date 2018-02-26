@@ -65,6 +65,33 @@ is
         Dest (Dest'First .. Dest'First + Size - 1) := Src (Src'First .. Src'First + Size - 1);
     end Copy;
 
+    procedure Disassemble (
+                           Source      : Fw_Types.Buffer;
+                           Direction   : Fw_Types.Direction;
+                           Eth_Header  : out Fw_Types.Eth
+                          )
+    is
+        Arrow : constant Fw_Log.Arrow := Fw_Log.Directed_Arrow (Direction);
+    begin
+        if Source'Length >= Fw_Types.Eth_Offset then
+            Eth_Header := Dissector.Eth_Be (Source);
+            if Eth_Header.Ethtype = RIL_Proxy_Ethtype then
+                Genode_Log.Log ("(" & Fw_Types.Image (Eth_Header.Ethtype) & ") "
+                                & Arrow & " "
+                                & Fw_Types.Image (Eth_Header.Source.OUI_0) & ":"
+                                & Fw_Types.Image (Eth_Header.Source.OUI_1) & ":"
+                                & Fw_Types.Image (Eth_Header.Source.OUI_2) & ":"
+                                & Fw_Types.Image (Eth_Header.Source.NIC_0) & ":"
+                                & Fw_Types.Image (Eth_Header.Source.NIC_1) & ":"
+                                & Fw_Types.Image (Eth_Header.Source.NIC_2)
+                               );
+                Packet_Select_Eth (Eth_Header,
+                                   Source,
+                                   Direction);
+            end if;
+        end if;
+    end Disassemble;
+    
     --  FIXME: We should do the conversion from Packet -> Buffer in SPARK!
     procedure Filter (
                       Source_Buffer      : Fw_Types.Buffer;
@@ -73,49 +100,48 @@ is
                       Instance           : Fw_Types.Process
                      )
     is
-        Arrow         : constant Fw_Log.Arrow := Fw_Log.Directed_Arrow (Direction);
-        Source_Eth    : Fw_Types.Eth;
+        Eth_Header : Fw_Types.Eth;
     begin
-        if Source_Buffer'Length >= Fw_Types.Eth_Offset and Source_Buffer'Length <= Destination_Buffer'Length then
-            Source_Eth := Dissector.Eth_Be (Source_Buffer);
-            if Source_Eth.Ethtype = RIL_Proxy_Ethtype then
-                Genode_Log.Log ("(" & Fw_Types.Image (Source_Eth.Ethtype) & ") "
-                                & Arrow & " "
-                                & Fw_Types.Image (Source_Eth.Source.OUI_0) & ":"
-                                & Fw_Types.Image (Source_Eth.Source.OUI_1) & ":"
-                                & Fw_Types.Image (Source_Eth.Source.OUI_2) & ":"
-                                & Fw_Types.Image (Source_Eth.Source.NIC_0) & ":"
-                                & Fw_Types.Image (Source_Eth.Source.NIC_1) & ":"
-                                & Fw_Types.Image (Source_Eth.Source.NIC_2)
-                               );
-                Packet_Select_Eth (Source_Eth,
-                                   Source_Buffer,
-                                   Direction,
-                                   Instance,
-                                   Destination_Buffer);
-            else
-                Copy (Destination_Buffer, Source_Buffer, Source_Buffer'Length);
-                Submit (Source_Buffer'Length, Instance);
-            end if;
+        
+        Disassemble(Source_Buffer, Direction, Eth_Header);
+        
+        if Eth_Header.Ethtype /= RIL_Proxy_Ethtype then
+            Copy (Destination_Buffer, Source_Buffer, Source_Buffer'Length);
+            Submit (Source_Buffer'Length, Instance);
         end if;
+        
+        Assemble (Eth_Header, Destination_Buffer, Direction, Instance);
+                    
     end Filter;
 
     procedure Packet_Select_Eth (
                                  Header      : Fw_Types.Eth;
                                  Payload     : Fw_Types.Buffer;
-                                 Dir         : Fw_Types.Direction;
-                                 Instance    : Fw_Types.Process;
-                                 Destination : out Fw_Types.Buffer
+                                 Dir         : Fw_Types.Direction
                                 )
     is
         Status : constant Dissector.Result := Dissector.Valid (Header, Payload, Dir);
     begin
-        if Status /= Dissector.Checked then
-            Genode_Log.Log ("Invalid packet: " & Dissector.Image (Status));
+        if Status = Dissector.Checked then
+            if Payload'Length > Fw_Types.Eth_Offset then
+                Packet_Select_Sl3p (Payload (Payload'First + Fw_Types.Eth_Offset .. Payload'Last),
+                                    Dir);
+            end if;
         else
-            Copy (Destination, Payload, Payload'Length);
-            Submit (Payload'Length, Instance);
+            Genode_Log.Log ("Invalid packet: " & Dissector.Image (Status));
         end if;
     end Packet_Select_Eth;
-
+    
+    procedure Packet_Select_Sl3p (
+                                  Packet      : Fw_Types.Buffer;
+                                  Dir         : Fw_Types.Direction
+                                 )
+    is
+        Header : Fw_Types.Sl3p;
+    begin
+        if Packet'Length >= Fw_Types.Sl3p_Offset then
+            Header := Dissector.Sl3p_Be (Packet);
+        end if;
+    end Packet_Select_Sl3p;
+    
 end Baseband_Fw;
