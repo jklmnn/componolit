@@ -13,15 +13,10 @@ package Baseband_Fw is
                           Iface     : Integer
                          );
 
-    procedure submit (
-                      Firewall : System.Address;
-                      Size     : Fw_Types.U32;
-                      Iface    : Integer
-                     )
-      with
-        Import,
-        Convention => C,
-        External_Name => "submit";
+    procedure Submit (
+                      Size : Fw_Types.U32;
+                      Instance : Fw_Types.Process
+                     );
 
 private
 
@@ -29,8 +24,7 @@ private
                       Source_Buffer      :        Fw_Types.Buffer;
                       Destination_Buffer :    out Fw_Types.Buffer;
                       Direction          :        Fw_Types.Direction;
-                      Firewall           : System.Address;
-                      Iface              : Integer
+                      Instance           : Fw_Types.Process
                      );
 
     procedure Copy (

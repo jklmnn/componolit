@@ -1,3 +1,4 @@
+with System;
 
 package Fw_Types
 is
@@ -129,6 +130,12 @@ is
     function Image (Val : U32) return H32
       with
         Depends => (Image'Result => Val);
+
+    type Process is
+        record
+            Instance : System.Address;
+            NIC      : Integer;
+        end record;
 
 private
 

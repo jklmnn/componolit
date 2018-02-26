@@ -31,9 +31,30 @@ is
         Src_Buf : Fw_Types.Buffer (0 .. Src_Size);
         for Src_Buf'Address use Src;
 
+        Instance : constant Fw_Types.Process := (Firewall, Iface);
     begin
-        Filter (Src_Buf, Dest_Buf, Fw_Types.Direction'Val (Dir), Firewall, Iface);
+        Filter (Src_Buf, Dest_Buf, Fw_Types.Direction'Val (Dir), Instance);
     end Filter_Hook;
+
+    procedure Submit (
+                      Size : Fw_Types.U32;
+                      Instance : Fw_Types.Process
+                     )
+      with
+        SPARK_Mode => Off
+    is
+        procedure C_Submit (
+                            Firewall : System.Address;
+                            S        : Fw_Types.U32;
+                            Iface    : Integer
+                           )
+          with
+            Import,
+            Convention => C,
+            External_Name => "submit";
+    begin
+        C_Submit (Instance.Instance, Size, Instance.NIC);
+    end Submit;
 
     procedure Copy (
                     Dest :    out Fw_Types.Buffer;
@@ -108,8 +129,7 @@ is
                       Source_Buffer      : Fw_Types.Buffer;
                       Destination_Buffer : out Fw_Types.Buffer;
                       Direction          : Fw_Types.Direction;
-                      Firewall           : System.Address;
-                      Iface              : Integer
+                      Instance           : Fw_Types.Process
                      )
     is
         Packet_Status : Fw_Types.Status;
@@ -119,7 +139,7 @@ is
         is
             when Fw_Types.Accepted =>
                 Copy (Src => Source_Buffer, Dest => Destination_Buffer);
-                submit (Firewall, Source_Buffer'Length, Iface);
+                Submit (Source_Buffer'Length, Instance);
             when Fw_Types.Rejected =>
                 --  Copy (Src => Source_Buffer, Dest => Destination_Buffer);
                 null;
