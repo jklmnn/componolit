@@ -70,7 +70,7 @@ append config {
 	<start name="baseband-fw">
 		<resource name="RAM" quantum="16M"/>
 		<provides><service name="Nic"/></provides>
-		<config uplink="BP" downlink="AP"/>
+		<config uplink="bp" downlink="ap"/>
 		<route>
             <service name="Nic"><child name="server-linux_nic_raweth"/></service>
 			<any-service><parent/><any-child/></any-service>
