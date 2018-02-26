@@ -28,13 +28,17 @@ private
        Pre     => (Dest'Length = Src'Length),
        Depends => (Dest => Src);
 
-    procedure Analyze
-      (Source :        Fw_Types.Packet;
-       Dir    :        Fw_Types.Direction;
-       Result :    out Fw_Types.Status);
+    procedure Analyze (
+                       Source :        Fw_Types.Buffer;
+                       Dir    :        Fw_Types.Direction;
+                       Result :    out Fw_Types.Status
+                      );
 
     RIL_Proxy_Ethtype  : constant Fw_Types.U16 := 16#524c#;
     RIL_Proxy_Setup    : constant Fw_Types.U32 := 16#15c70000#;
     RIL_Proxy_Teardown : constant Fw_Types.U32 := 16#17c70000#;
+
+    type Directed_Sequence is array (Fw_Types.Direction range Fw_Types.BP .. Fw_Types.AP) of Fw_Types.U64;
+    Sequence : Directed_Sequence := (others => 0);
 
 end Baseband_Fw;

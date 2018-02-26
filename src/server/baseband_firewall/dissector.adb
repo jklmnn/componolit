@@ -7,14 +7,15 @@ is
 
     pragma Warnings (Off, "pragma Restrictions (No_Exception_Propagation) in effect");
 
-    function UXX_Be (buffer : Fw_Types.Buffer)
-                     return UXX
+    function UXX_Be (
+                     Buffer : Fw_Types.Buffer
+                    ) return UXX
     is
         value : UXX := 0;
     begin
         for i in Fw_Types.U32 range 0 .. (UXX'Size / 8) - 1 loop
-            pragma Loop_Invariant (buffer'Length > (UXX'Size / 8) - 1);
-            value := value + UXX (buffer (buffer'Last - Fw_Types.U32 (i))) * UXX (Fw_Types.Exp (256, i));
+            pragma Loop_Invariant (Buffer'Length > (UXX'Size / 8) - 1);
+            value := value + UXX (Buffer (Buffer'Last - Fw_Types.U32 (i))) * UXX (Fw_Types.Exp (256, i));
         end loop;
         return value;
     end UXX_Be;
@@ -27,36 +28,36 @@ is
     -- Eth_Be --
     ------------
 
-    function Eth_Be
-      (buffer : Fw_Types.Buffer)
-       return Fw_Types.Eth
+    function Eth_Be (
+                     Buffer : Fw_Types.Buffer
+                    ) return Fw_Types.Eth
     is
-        header : Fw_Types.Eth;
-        ethtype : Fw_Types.Buffer (0 .. 1) := (0, 0);
+        Header : Fw_Types.Eth;
+        Ethtype : Fw_Types.Buffer (0 .. 1) := (0, 0);
     begin
-        ethtype (0) := buffer (buffer'First + 12);
-        ethtype (1) := buffer (buffer'First + 13);
+        Ethtype (0) := Buffer (Buffer'First + 12);
+        Ethtype (1) := Buffer (Buffer'First + 13);
 
-        pragma Assert (buffer'First + 13 <= buffer'Last);
-        header.Destination.OUI_0 := buffer (buffer'First + 0);
-        header.Destination.OUI_1 := buffer (buffer'First + 1);
-        header.Destination.OUI_2 := buffer (buffer'First + 2);
-        header.Destination.NIC_0 := buffer (buffer'First + 3);
-        header.Destination.NIC_1 := buffer (buffer'First + 4);
-        header.Destination.NIC_2 := buffer (buffer'First + 5);
+        pragma Assert (Buffer'First + 13 <= Buffer'Last);
+        Header.Destination.OUI_0 := Buffer (Buffer'First + 0);
+        Header.Destination.OUI_1 := Buffer (Buffer'First + 1);
+        Header.Destination.OUI_2 := Buffer (Buffer'First + 2);
+        Header.Destination.NIC_0 := Buffer (Buffer'First + 3);
+        Header.Destination.NIC_1 := Buffer (Buffer'First + 4);
+        Header.Destination.NIC_2 := Buffer (Buffer'First + 5);
 
-        header.Source.OUI_0 := buffer (buffer'First + 6);
-        header.Source.OUI_1 := buffer (buffer'First + 7);
-        header.Source.OUI_2 := buffer (buffer'First + 8);
-        header.Source.NIC_0 := buffer (buffer'First + 9);
-        header.Source.NIC_1 := buffer (buffer'First + 10);
-        header.Source.NIC_2 := buffer (buffer'First + 11);
+        Header.Source.OUI_0 := Buffer (Buffer'First + 6);
+        Header.Source.OUI_1 := Buffer (Buffer'First + 7);
+        Header.Source.OUI_2 := Buffer (Buffer'First + 8);
+        Header.Source.NIC_0 := Buffer (Buffer'First + 9);
+        Header.Source.NIC_1 := Buffer (Buffer'First + 10);
+        Header.Source.NIC_2 := Buffer (Buffer'First + 11);
 
         pragma Assert (Fw_Types.U16'Size / 8 = 2);
-        pragma Assert (ethtype'Length = 2);
-        header.Ethtype := U16_Be (ethtype);
+        pragma Assert (Ethtype'Length = 2);
+        Header.Ethtype := U16_Be (Ethtype);
 
-        return header;
+        return Header;
     end Eth_Be;
 
     -------------
@@ -64,14 +65,15 @@ is
     -------------
 
     function Sl3p_Be
-      (buffer : Fw_Types.Buffer)
-       return Fw_Types.Sl3p
+      (
+       Buffer : Fw_Types.Buffer
+      ) return Fw_Types.Sl3p
     is
-        header : Fw_Types.Sl3p;
+        Header : Fw_Types.Sl3p;
     begin
-        header.Sequence_number := U64_Be (buffer (buffer'First .. buffer'First + 7));
-        header.Length := U32_Be (buffer (buffer'First + 8 .. buffer'First + 11));
-        return header;
+        Header.Sequence_number := U64_Be (Buffer (Buffer'First .. Buffer'First + 7));
+        Header.Length := U32_Be (Buffer (Buffer'First + 8 .. Buffer'First + 11));
+        return Header;
     end Sl3p_Be;
 
     ------------
@@ -79,30 +81,45 @@ is
     ------------
 
     function Ril_Be
-      (buffer : Fw_Types.Buffer)
-       return Fw_Types.RIL
+      (
+       Buffer : Fw_Types.Buffer
+      ) return Fw_Types.RIL
     is
-        header : Fw_Types.RIL;
+        Header : Fw_Types.RIL;
     begin
-        header.Length := U32_Be (buffer (buffer'First .. buffer'First + 3));
-        header.ID := U32_Be (buffer (buffer'First + 4 .. buffer'First + 7));
-        header.Token_Event := U32_Be (buffer (buffer'First + 8 .. buffer'First + 11));
-        return header;
+        Header.Length := U32_Be (Buffer (Buffer'First .. Buffer'First + 3));
+        Header.ID := U32_Be (Buffer (Buffer'First + 4 .. Buffer'First + 7));
+        Header.Token_Event := U32_Be (Buffer (Buffer'First + 8 .. Buffer'First + 11));
+        return Header;
     end Ril_Be;
 
     -----------
     -- Valid --
     -----------
 
-    function Valid
-      (header : Fw_Types.Eth;
-       payload : Fw_Types.Buffer)
-       return Boolean
+    function Valid (
+                    Header : Fw_Types.Eth;
+                    Payload : Fw_Types.Buffer;
+                    Dir     : Fw_Types.Direction
+                   ) return Boolean
     is
-        v : Boolean := payload'Length <= 1500;
+        v : Boolean := Payload'Length <= 1500;
     begin
-        v := v and payload'Length >= 46;
-        v := v and header.Source.NIC_2 /= 0;
+        v := v and Payload'Length >= 46;
+        --  Mac address : 2a:43:4d:50:2a:0(a|b)
+        v := v and Header.Source.OUI_0 = 16#2a#;
+        v := v and Header.Source.OUI_1 = 16#43#;
+        v := v and Header.Source.OUI_2 = 16#4d#;
+        v := v and Header.Source.NIC_0 = 16#50#;
+        v := v and Header.Source.NIC_1 = 16#2a#;
+        case Dir is
+            when Fw_Types.BP =>
+                v := v and Header.Source.NIC_2 = 16#0b#;
+            when Fw_Types.AP =>
+                v := v and Header.Source.NIC_2 = 16#0a#;
+            when others =>
+                v := False;
+        end case;
         return v;
     end Valid;
 
@@ -110,20 +127,20 @@ is
     -- Valid --
     -----------
 
-    function Valid
-      (header : Fw_Types.Sl3p;
-       payload : Fw_Types.Buffer;
-       sequence : Fw_Types.U64)
-       return Boolean
+    function Valid (
+                    Header   : Fw_Types.Sl3p;
+                    Payload  : Fw_Types.Buffer;
+                    Sequence : Fw_Types.U64
+                   ) return Boolean
     is
-        v : Boolean := header.Sequence_number > 0;
+        v : Boolean := Header.Sequence_number > 0;
     begin
-        v := v and (header.Sequence_number > sequence);
-        v := v and header.Length <= 1488;
-        if header.Length <= 34 then
-            v := v and payload'Length = 34;
+        v := v and (Header.Sequence_number > Sequence);
+        v := v and Header.Length <= 1488;
+        if Header.Length <= 34 then
+            v := v and Payload'Length = 34;
         else
-            v := v and (payload'Length = header.Length);
+            v := v and (Payload'Length = Header.Length);
         end if;
         return v;
     end Valid;
@@ -132,12 +149,12 @@ is
     -- Valid --
     -----------
 
-    function Valid
-      (header : Fw_Types.RIL;
-       payload : Fw_Types.Buffer)
-       return Boolean
+    function Valid (
+                    Header : Fw_Types.RIL;
+                    Payload : Fw_Types.Buffer
+                   ) return Boolean
     is
-        v : constant Boolean := header.Length = payload'Length;
+        v : constant Boolean := Header.Length = Payload'Length;
     begin
         return v;
     end Valid;
