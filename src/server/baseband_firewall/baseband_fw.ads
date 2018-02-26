@@ -3,24 +3,27 @@ with Fw_Types;
 
 package Baseband_Fw is
 
-    procedure Filter_Hook
-      (Dest      : System.Address;
-       Src       : System.Address;
-       Dest_Size : Fw_Types.U32;
-       Src_Size  : Fw_Types.U32;
-       Dir       : Integer);
+    function Filter_Hook (
+                           Dest      : System.Address;
+                           Src       : System.Address;
+                           Dest_Size : Fw_Types.U32;
+                           Src_Size  : Fw_Types.U32;
+                           Dir       : Integer
+                          ) return Integer;
 
 private
 
-    procedure Filter
-        (Source_Buffer      :        Fw_Types.Buffer;
-         Source_Packet      :        Fw_Types.Packet;
-         Destination_Buffer :    out Fw_Types.Buffer;
-         Direction          :        Fw_Types.Direction);
+    procedure Filter (
+                      Source_Buffer      :        Fw_Types.Buffer;
+                      Destination_Buffer :    out Fw_Types.Buffer;
+                      Direction          :        Fw_Types.Direction;
+                      Ready              : out Integer
+                     );
 
-    procedure Copy
-      (Dest :    out Fw_Types.Buffer;
-       Src  :        Fw_Types.Buffer)
+    procedure Copy (
+                    Dest :    out Fw_Types.Buffer;
+                    Src  :        Fw_Types.Buffer
+                   )
     with
        Pre     => (Dest'Length = Src'Length),
        Depends => (Dest => Src);

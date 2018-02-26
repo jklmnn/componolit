@@ -11,12 +11,13 @@ is
 
     pragma Warnings (Off, "pragma Restrictions (No_Exception_Propagation) in effect");
 
-    procedure Filter_Hook
-      (Dest      : System.Address;
-       Src       : System.Address;
-       Dest_Size : Fw_Types.U32;
-       Src_Size  : Fw_Types.U32;
-       Dir       : Integer)
+    function Filter_Hook (
+                           Dest      : System.Address;
+                           Src       : System.Address;
+                           Dest_Size : Fw_Types.U32;
+                           Src_Size  : Fw_Types.U32;
+                           Dir       : Integer
+                          ) return Integer
       with
         SPARK_Mode => Off
     is
@@ -26,25 +27,26 @@ is
         Src_Buf : Fw_Types.Buffer (0 .. Src_Size);
         for Src_Buf'Address use Src;
 
-        Src_Packet : Fw_Types.Packet;
-        for Src_Packet'Address use Src;
-
+        Ready : Integer;
     begin
-        Filter (Src_Buf, Src_Packet, Dest_Buf, Fw_Types.Direction'Val (Dir));
+        Filter (Src_Buf, Dest_Buf, Fw_Types.Direction'Val (Dir), Ready);
+        return Ready;
     end Filter_Hook;
 
-    procedure Copy
-      (Dest :    out Fw_Types.Buffer;
-       Src  :        Fw_Types.Buffer)
+    procedure Copy (
+                    Dest :    out Fw_Types.Buffer;
+                    Src  :        Fw_Types.Buffer
+                   )
     is
     begin
         Dest := Src;
     end Copy;
 
-    procedure Analyze
-      (Source :        Fw_Types.Packet;
-       Dir    :        Fw_Types.Direction;
-       Result :    out Fw_Types.Status)
+    procedure Analyze (
+                       Source :        Fw_Types.Buffer;
+                       Dir    :        Fw_Types.Direction;
+                       Result :    out Fw_Types.Status
+                      )
     is
         Arrow  : constant Fw_Log.Arrow := Fw_Log.Directed_Arrow (Dir);
         Msg    : Fw_Types.U32;
@@ -78,11 +80,12 @@ is
     end Analyze;
 
     --  FIXME: We should do the conversion from Packet -> Buffer in SPARK!
-    procedure Filter
-      (Source_Buffer      :        Fw_Types.Buffer;
-       Source_Packet      :        Fw_Types.Packet;
-       Destination_Buffer :    out Fw_Types.Buffer;
-       Direction          :        Fw_Types.Direction)
+    procedure Filter (
+                      Source_Buffer      :        Fw_Types.Buffer;
+                      Destination_Buffer :    out Fw_Types.Buffer;
+                      Direction          :        Fw_Types.Direction;
+                      Ready              : out Integer
+                     )
     is
         Packet_Status : Fw_Types.Status;
     begin
@@ -91,8 +94,10 @@ is
         is
             when Fw_Types.Accepted =>
                 Copy (Src => Source_Buffer, Dest => Destination_Buffer);
+                Ready := 1;
             when Fw_Types.Rejected =>
-                Copy (Src => Source_Buffer, Dest => Destination_Buffer);
+                --  Copy (Src => Source_Buffer, Dest => Destination_Buffer);
+                Ready := 0;
         end case;
     end Filter;
 

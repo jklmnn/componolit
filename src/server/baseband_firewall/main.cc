@@ -24,9 +24,12 @@ class Baseband::Firewall : public Nic_filter::Filter
         {
             const Genode::size_t bufsize = size;
             Genode::uint8_t buffer[bufsize];
-            Genode::log(__func__, Buffer_dump<Genode::uint32_t, 4>((Genode::uint32_t *)data, Genode::min(16, size / sizeof(Genode::uint32_t))));
-            baseband_fw__filter_hook(buffer, data, bufsize, size, (int)dir);
-            send(buffer, bufsize, iface);
+            int select_send = 0;
+            //Genode::log(__func__, Buffer_dump<Genode::uint32_t, 4>((Genode::uint32_t *)data, Genode::min(16, size / sizeof(Genode::uint32_t))));
+            select_send = baseband_fw__filter_hook(buffer, data, bufsize, size, (int)dir);
+            if(select_send){
+                send(buffer, bufsize, iface);
+            }
         }
 };
 
