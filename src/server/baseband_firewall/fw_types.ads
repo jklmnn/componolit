@@ -66,6 +66,8 @@ is
             Ethtype     at 12 range 0 .. 15;
         end record;
 
+    Eth_Offset : constant U32 := 14;
+
     type Sl3p is
         record
             Sequence_number : U64;
@@ -74,10 +76,12 @@ is
       Size => 96;
 
     for Sl3p use
-      record
+        record
             Sequence_Number at 0 range 0 .. 63;
             Length          at 8 range 0 .. 31;
-      end record;
+        end record;
+
+    Sl3p_Offset : constant U32 := 12;
 
     type RIL is record
         Length      : U32;
@@ -92,6 +96,8 @@ is
             ID          at 4 range 0 .. 31;
             Token_Event at 8 range 0 .. 31;
         end record;
+
+    RIL_Offset : constant U32 := 12;
 
     type Packet is record
         Eth_Header : Eth;
