@@ -43,7 +43,7 @@ CC_ADA_OPT += -gnatyi    # check if-then layout
 CC_ADA_OPT += -gnatyI    # check mode in
 CC_ADA_OPT += -gnatyk    # check casing rules for keywords
 CC_ADA_OPT += -gnatyl    # check reference manual layout
-CC_ADA_OPT += -gnatyL4   # check max nest level < nn
+CC_ADA_OPT += -gnatyL5   # check max nest level < nn
 CC_ADA_OPT += -gnatyM120 # check line length <= nn characters
 CC_ADA_OPT += -gnatyn    # check casing of package Standard identifiers
 CC_ADA_OPT += -gnatyO    # check overriding indicators
