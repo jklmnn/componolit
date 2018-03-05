@@ -15,6 +15,8 @@ is
     type U32 is mod 2**32;
     for U32'Size use 32;
 
+    subtype U32_Index is U32 range U32'First .. U32'Last - 1;
+
     type U64 is mod 2**64;
     for U64'Size use 64;
 
@@ -29,7 +31,7 @@ is
         Pre  => Exponent <= U32 (Natural'Last),
         Post => (Exp'Result = U64 (Base ** Natural (Exponent)));
 
-    type Buffer is array (U32 range <>) of U08;
+    type Buffer is array (U32_Index range <>) of U08;
 
     type Mac is
         record

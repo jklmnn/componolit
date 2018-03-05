@@ -1,10 +1,13 @@
 with System;
 with Fw_Types;
+with Dissector;
 use all type Fw_Types.U32;
+use all type Fw_Types.Direction;
+use all type Dissector.Result;
 
 package Baseband_Fw is
 
-    BUFFER_SIZE : Fw_Types.U32 := 4096;
+    BUFFER_SIZE : constant Fw_Types.U32 := 4096;
 
     procedure Filter_Hook (
                           Dest      : System.Address;
@@ -50,42 +53,56 @@ private
 
     procedure Copy (
                     Dest :    out Fw_Types.Buffer;
-                    Src  :        Fw_Types.Buffer;
-                    Size : Fw_Types.U32
+                    Src  :        Fw_Types.Buffer
                    )
       with
-        Pre     => (Size <= Dest'Length and Size <= Src'Length),
-      Depends => (Dest => (Src, Size));
+        Pre     => (Dest'Length = Src'Length),
+      Depends => (Dest => Src);
 
     procedure Cat (
                    Direction : Fw_Types.Direction;
                    Source    : Fw_Types.Buffer;
                    Size      : Fw_Types.U32
-                  );
+                  )
+      with
+        Pre => Direction /= Fw_Types.Unknown and then
+        Source'Length >= Size and then
+        Size > 0 and then
+        Packet_Buffer (Direction)'First + Packet_Cursor (Direction).Cat + Size <= Directed_Buffer_Range'Last;
 
     procedure Disassemble (
                            Source      : Fw_Types.Buffer;
                            Direction   : Fw_Types.Direction;
-                           Eth_Header  : out Fw_Types.Eth
-                          );
+                           Eth_Header  : out Fw_Types.Eth;
+                           Status      : out Dissector.Result
+                          )
+      with
+    Post => (if Direction = Fw_Types.Unknown then Status /= Dissector.Checked);
 
     procedure Assemble (
                         Eth_Header  : Fw_Types.Eth;
                         Destination : out Fw_Types.Buffer;
                         Direction   : Fw_Types.Direction;
                         Instance    : Fw_Types.Process
-                       );
+                       )
+      with
+        Pre => Direction /= Fw_Types.Unknown;
 
     procedure Packet_Select_Eth (
                                  Header      : Fw_Types.Eth;
                                  Payload     : Fw_Types.Buffer;
-                                 Dir         : Fw_Types.Direction
-                                );
+                                 Dir         : Fw_Types.Direction;
+                                 Status      : out Dissector.Result
+                                )
+      with
+        Post => (if Dir = Fw_Types.Unknown then Status /= Dissector.Checked);
 
     procedure Packet_Select_Sl3p (
                                   Packet      : Fw_Types.Buffer;
                                   Dir         : Fw_Types.Direction
-                                 );
+                                 )
+      with
+        Pre => Dir /= Fw_Types.Unknown and Packet'Length <= 1500;
 
     procedure Packet_Select_RIL (
                                  Packet      : Fw_Types.Buffer;
@@ -93,7 +110,9 @@ private
                                  Instance    : Fw_Types.Process;
                                  Destination : out Fw_Types.Buffer;
                                  Eth_Header  : Fw_Types.Eth
-                                );
+                                )
+      with
+        Pre => Dir /= Fw_Types.Unknown;
 
     RIL_Proxy_Ethtype  : constant Fw_Types.U16 := 16#524c#;
     RIL_Proxy_Setup    : constant Fw_Types.U32 := 16#15c70000#;

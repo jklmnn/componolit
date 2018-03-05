@@ -3,6 +3,7 @@ use all type Fw_Types.U08;
 use all type Fw_Types.U16;
 use all type Fw_Types.U32;
 use all type Fw_Types.U64;
+use all type Fw_Types.Direction;
 
 package Dissector
 with
@@ -37,14 +38,14 @@ is
                     )
       with
         Depends => (Buffer => Header),
-      Pre => Buffer'Length = 14;
+      Pre => Buffer'Length = Fw_Types.Eth_Offset;
 
     function Sl3p_Be (
                       Buffer : Fw_Types.Buffer
                      ) return Fw_Types.Sl3p
       with
         Depends => (Sl3p_Be'Result => Buffer),
-      Pre => Buffer'Length >= Fw_Types.Sl3p'Size / 8;
+      Pre => Buffer'Length >= Fw_Types.Sl3p_Offset;
 
     procedure Sl3p_Be (
                       Header : Fw_Types.Sl3p;
@@ -59,7 +60,7 @@ is
                     ) return Fw_Types.RIL
       with
         Depends => (Ril_Be'Result => Buffer),
-      Pre => Buffer'Length >= Fw_Types.RIL'Size / 8;
+      Pre => Buffer'Length >= Fw_Types.RIL_Offset;
 
     function Valid (
                     Header  : Fw_Types.Eth;
@@ -68,9 +69,11 @@ is
                    ) return Result
       with
         Depends => (Valid'Result => (Header, Payload, Dir)),
-        Post => (if Payload'Length <= 1500 and Payload'Length >= 46 and
-                   Header.Source.NIC_2 /= 0
-                   then Valid'Result = Checked);
+        Post => (if Valid'Result = Checked then
+                   Payload'Length <= 1500 and
+                     Payload'Length >= 46 and
+                       Header.Source.NIC_2 /= 0 and
+                Dir /= Fw_Types.Unknown);
 
     function Valid (
                     Header   : Fw_Types.Sl3p;
@@ -80,12 +83,13 @@ is
       with
         Depends => (Valid'Result => (Header, Payload, Sequence)),
         Pre => Payload'Length <= 1500,
-        Post => (if Header.Sequence_Number > Sequence and
-                   (if Header.Length <= 34 then Payload'Length = 34 else
-                          Payload'Length = Header.Length) and
+        Post => (if Valid'Result = Checked Then
+                   Header.Sequence_Number > Sequence and
+                     (if Header.Length <= 34 then Payload'Length = 34 else
+                            Payload'Length = Header.Length) and
                          Header.Length <= 1488 and
-                           Header.Sequence_Number > 0
-                             then Valid'Result = Checked);
+                           Header.Sequence_Number > 0 and
+                Payload'Length >= Header.Length);
 
     function Valid (
                     Header  : Fw_Types.RIL;
@@ -94,8 +98,8 @@ is
       with
         Depends => (Valid'Result => (Header, Payload)),
         Pre => Payload'Length > 0 and Payload'Length < Fw_Types.U32'Last,
-      Post => (if Header.Length = Payload'Length
-                 then Valid'Result = Checked);
+      Post => (if Valid'Result = Checked then
+                 Header.Length <= Payload'Length);
 
     function Image (
                     R : Result
