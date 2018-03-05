@@ -22,7 +22,7 @@ class Baseband::Firewall : public Nic_filter::Filter
 
     private:
 
-        Genode::uint8_t buffer[2 * BUFSIZE];
+        Genode::uint8_t buffer[BUFSIZE];
 
     public:
         
