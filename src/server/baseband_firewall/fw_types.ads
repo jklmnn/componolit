@@ -71,7 +71,7 @@ is
 
     type Sl3p is
         record
-            Sequence_number : U64;
+            Sequence_Number : U64;
             Length : U32;
         end record with
       Size => 96;

@@ -24,6 +24,24 @@ is
     function U32_Be is new UXX_Be (Fw_Types.U32);
     function U64_Be is new UXX_Be (Fw_Types.U64);
 
+    procedure Be_UXX (
+                      Value  : UXX;
+                      Buffer : out Fw_Types.Buffer
+                     )
+    is
+        V : UXX := Value;
+    begin
+        Buffer := (others => 0);
+        for I in reverse Buffer'Range loop
+            Buffer (I) := Fw_Types.U08 (V and 16#ff#);
+            V := V / 256;
+        end loop;
+    end Be_UXX;
+
+    procedure Be_U16 is new Be_UXX (Fw_Types.U16);
+    procedure Be_U32 is new Be_UXX (Fw_Types.U32);
+    procedure Be_U64 is new Be_UXX (Fw_Types.U64);
+
     ------------
     -- Eth_Be --
     ------------
@@ -60,30 +78,61 @@ is
         return Header;
     end Eth_Be;
 
+    procedure Eth_Be (
+                      Header : Fw_Types.Eth;
+                      Buffer : out Fw_Types.Buffer
+                    )
+    is
+    begin
+        Buffer (Buffer'First + 0) := Header.Destination.OUI_0;
+        Buffer (Buffer'First + 1) := Header.Destination.OUI_1;
+        Buffer (Buffer'First + 2) := Header.Destination.OUI_2;
+        Buffer (Buffer'First + 3) := Header.Destination.NIC_0;
+        Buffer (Buffer'First + 4) := Header.Destination.NIC_1;
+        Buffer (Buffer'First + 5) := Header.Destination.NIC_2;
+
+        Buffer (Buffer'First +  6) := Header.Source.OUI_0;
+        Buffer (Buffer'First +  7) := Header.Source.OUI_1;
+        Buffer (Buffer'First +  8) := Header.Source.OUI_2;
+        Buffer (Buffer'First +  9) := Header.Source.NIC_0;
+        Buffer (Buffer'First + 10) := Header.Source.NIC_1;
+        Buffer (Buffer'First + 11) := Header.Source.NIC_2;
+
+        Be_U16 (Header.Ethtype, Buffer (Buffer'First + 12 .. Buffer'First + 13));
+    end Eth_Be;
+
     -------------
     -- Sl3p_Be --
     -------------
 
-    function Sl3p_Be
-      (
-       Buffer : Fw_Types.Buffer
-      ) return Fw_Types.Sl3p
+    function Sl3p_Be (
+                      Buffer : Fw_Types.Buffer
+                     ) return Fw_Types.Sl3p
     is
         Header : Fw_Types.Sl3p;
     begin
-        Header.Sequence_number := U64_Be (Buffer (Buffer'First .. Buffer'First + 7));
+        Header.Sequence_Number := U64_Be (Buffer (Buffer'First .. Buffer'First + 7));
         Header.Length := U32_Be (Buffer (Buffer'First + 8 .. Buffer'First + 11));
         return Header;
+    end Sl3p_Be;
+
+    procedure Sl3p_Be (
+                       Header : Fw_Types.Sl3p;
+                       Buffer : out Fw_Types.Buffer
+                      )
+    is
+    begin
+        Be_U64 (Header.Sequence_Number, Buffer (Buffer'First .. Buffer'First + 7));
+        Be_U32 (Header.Length, Buffer (Buffer'First + 8 .. Buffer'First + 11));
     end Sl3p_Be;
 
     ------------
     -- Ril_Be --
     ------------
 
-    function Ril_Be
-      (
-       Buffer : Fw_Types.Buffer
-      ) return Fw_Types.RIL
+    function Ril_Be (
+                     Buffer : Fw_Types.Buffer
+                    ) return Fw_Types.RIL
     is
         Header : Fw_Types.RIL;
     begin
@@ -136,8 +185,8 @@ is
     is
         v : Result := Unchecked;
     begin
-        Check_Condition (v, Header.Sequence_number > 0, Invalid_Sequence_Number);
-        Check_Condition (v, Header.Sequence_number > Sequence, Invalid_Sequence_Number);
+        Check_Condition (v, Header.Sequence_Number > 0, Invalid_Sequence_Number);
+        Check_Condition (v, Header.Sequence_Number > Sequence, Invalid_Sequence_Number);
         Check_Condition (v, Header.Length <= 1488, Invalid_Size);
         if Header.Length <= 34 then
             Check_Condition (v, Payload'Length = 34, Invalid_Size);
@@ -158,7 +207,7 @@ is
     is
         v : Result := Unchecked;
     begin
-        Check_Condition (v, Header.Length = Payload'Length, Invalid_Size);
+        Check_Condition (v, Header.Length <= Payload'Length, Invalid_Size);
         return (if v = Unchecked then Checked else v);
     end Valid;
 
