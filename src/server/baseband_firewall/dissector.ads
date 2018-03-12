@@ -37,7 +37,7 @@ is
                       Buffer : out Fw_Types.Buffer
                     )
       with
-        Depends => (Buffer => Header),
+        Depends => (Buffer =>+ Header),
       Pre => Buffer'Length = Fw_Types.Eth_Offset;
 
     function Sl3p_Be (
@@ -52,7 +52,7 @@ is
                       Buffer : out Fw_Types.Buffer
                      )
       with
-        Depends => (Buffer => Header),
+        Depends => (Buffer =>+ Header),
       Pre => Buffer'Length = 12;
 
     function Ril_Be (
@@ -83,7 +83,7 @@ is
       with
         Depends => (Valid'Result => (Header, Payload, Sequence)),
         Pre => Payload'Length <= 1500,
-        Post => (if Valid'Result = Checked Then
+        Post => (if Valid'Result = Checked then
                    Header.Sequence_Number > Sequence and
                      (if Header.Length <= 34 then Payload'Length = 34 else
                             Payload'Length = Header.Length) and
@@ -136,7 +136,7 @@ private
                       Buffer : out Fw_Types.Buffer
                      )
       with
-        Depends => (Buffer => Value),
+        Depends => (Buffer =>+ Value),
       Pre => UXX'Size rem 8 = 0 and then Buffer'Length = UXX'Size / 8;
 
 end Dissector;
