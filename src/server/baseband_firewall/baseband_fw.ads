@@ -2,6 +2,7 @@ with System;
 with Fw_Types;
 with Dissector;
 use all type Fw_Types.U32;
+use all type Fw_Types.U32_Index;
 use all type Fw_Types.Direction;
 use all type Dissector.Result;
 
@@ -30,7 +31,7 @@ private
     Source_Sequence : Directed_Sequence := (others => 0);
     Destination_Sequence : Directed_Sequence := (others => 1);
 
-    subtype Directed_Buffer_Range is Fw_Types.U32 range 0 .. BUFFER_SIZE - 1;
+    subtype Directed_Buffer_Range is Fw_Types.U32_Index range 0 .. BUFFER_SIZE - 1;
 
     type Directed_Buffer is array (Fw_Types.Direction range Fw_Types.BP .. Fw_Types.AP)
       of Fw_Types.Buffer (Directed_Buffer_Range);
@@ -51,14 +52,6 @@ private
                       Instance           : Fw_Types.Process
                      );
 
-    procedure Copy (
-                    Dest :    out Fw_Types.Buffer;
-                    Src  :        Fw_Types.Buffer
-                   )
-      with
-        Pre     => (Dest'Length = Src'Length),
-      Depends => (Dest => Src);
-
     procedure Cat (
                    Direction : Fw_Types.Direction;
                    Source    : Fw_Types.Buffer;
@@ -66,7 +59,7 @@ private
                   )
       with
         Pre => Direction /= Fw_Types.Unknown and then
-        Source'Length >= Size and then
+        Size <= Source'Length and then
         Size > 0 and then
         Packet_Buffer (Direction)'First + Packet_Cursor (Direction).Cat + Size <= Directed_Buffer_Range'Last;
 
@@ -86,7 +79,8 @@ private
                         Instance    : Fw_Types.Process
                        )
       with
-        Pre => Direction /= Fw_Types.Unknown;
+        Pre => Direction /= Fw_Types.Unknown and
+        Destination'First + Fw_Types.Eth_Offset + Fw_Types.Sl3p_Offset < Destination'Last;
 
     procedure Packet_Select_Eth (
                                  Header      : Fw_Types.Eth;
@@ -112,7 +106,10 @@ private
                                  Eth_Header  : Fw_Types.Eth
                                 )
       with
-        Pre => Dir /= Fw_Types.Unknown;
+        Pre => Dir /= Fw_Types.Unknown and
+        Packet'Length > 0 and
+        Destination'Length > Fw_Types.Eth_Offset + Fw_Types.Sl3p_Offset + Packet'Length and
+        Destination'First + Fw_Types.Eth_Offset + Fw_Types.Sl3p_Offset + Packet'Length < Destination'Last;
 
     RIL_Proxy_Ethtype  : constant Fw_Types.U16 := 16#524c#;
     RIL_Proxy_Setup    : constant Fw_Types.U32 := 16#15c70000#;

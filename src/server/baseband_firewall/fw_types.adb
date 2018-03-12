@@ -19,7 +19,7 @@ is
         return Ret;
     end Exp;
 
-    function Image (Val : U08) return H08
+    function Image (Val : Byte) return H08
     is
         Hx : H08 := H08'(others => '~');
     begin
@@ -28,26 +28,44 @@ is
         return Hx;
     end Image;
 
-    function Image (Val : U16) return H16
+    function Image (Val : U08) return H08
+    is
+    begin
+        return Image (Byte (Val));
+    end Image;
+
+    function Image (Val : Word) return H16
     is
         Hx : H16 := H16'(others => '~');
-        v : U08 := U08 ((Val and 16#ff00#) / 256);
+        v : Byte := Byte ((Val and 16#ff00#) / 256);
     begin
         Hx (Hx'First .. Hx'First + 1) := Image (v);
-        v := U08 (Val and 16#00ff#);
+        v := Byte (Val and 16#00ff#);
         Hx (Hx'First + 2 .. Hx'First + 3) := Image (v);
+        return Hx;
+    end Image;
+
+    function Image (Val : U16) return H16
+    is
+    begin
+        return Image (Word (Val));
+    end Image;
+
+    function Image (Val : Double_Word) return H32
+    is
+        Hx : H32 := H32'(others => '~');
+        v : Word := Word ((Val and 16#ffff0000#) / 65536);
+    begin
+        Hx (Hx'First .. Hx'First + 3) := Image (v);
+        v := Word (Val and 16#0000ffff#);
+        Hx (Hx'First + 4 .. Hx'First + 7) := Image (v);
         return Hx;
     end Image;
 
     function Image (Val : U32) return H32
     is
-        Hx : H32 := H32'(others => '~');
-        v : U16 := U16 ((Val and 16#ffff0000#) / 65536);
     begin
-        Hx (Hx'First .. Hx'First + 3) := Image (v);
-        v := U16 (Val and 16#0000ffff#);
-        Hx (Hx'First + 4 .. Hx'First + 7) := Image (v);
-        return Hx;
+        return Image (Double_Word (Val));
     end Image;
 
 end Fw_Types;

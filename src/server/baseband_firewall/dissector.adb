@@ -11,18 +11,18 @@ is
                      Buffer : Fw_Types.Buffer
                     ) return UXX
     is
-        value : UXX := 0;
+        Value : UXX := 0;
     begin
-        for i in Fw_Types.U32 range 0 .. (UXX'Size / 8) - 1 loop
+        for I in Fw_Types.U32_Index range 0 .. (UXX'Size / 8) - 1 loop
             pragma Loop_Invariant (Buffer'Length > (UXX'Size / 8) - 1);
-            value := value + UXX (Buffer (Buffer'Last - Fw_Types.U32 (i))) * UXX (Fw_Types.Exp (256, i));
+            Value := Value + UXX (Buffer (Buffer'Last -  I)) * UXX (Fw_Types.Exp (256, Fw_Types.U32 (I)));
         end loop;
-        return value;
+        return Value;
     end UXX_Be;
 
-    function U16_Be is new UXX_Be (Fw_Types.U16);
-    function U32_Be is new UXX_Be (Fw_Types.U32);
-    function U64_Be is new UXX_Be (Fw_Types.U64);
+    function U16_Be is new UXX_Be (Fw_Types.Word);
+    function U32_Be is new UXX_Be (Fw_Types.Double_Word);
+    function U64_Be is new UXX_Be (Fw_Types.Quad_Word);
 
     procedure Be_UXX (
                       Value  : UXX;
@@ -33,14 +33,14 @@ is
     begin
         Buffer := (others => 0);
         for I in reverse Buffer'Range loop
-            Buffer (I) := Fw_Types.U08 (V and 16#ff#);
+            Buffer (I) := Fw_Types.Byte (V and 16#ff#);
             V := V / 256;
         end loop;
     end Be_UXX;
 
-    procedure Be_U16 is new Be_UXX (Fw_Types.U16);
-    procedure Be_U32 is new Be_UXX (Fw_Types.U32);
-    procedure Be_U64 is new Be_UXX (Fw_Types.U64);
+    procedure Be_U16 is new Be_UXX (Fw_Types.Word);
+    procedure Be_U32 is new Be_UXX (Fw_Types.Double_Word);
+    procedure Be_U64 is new Be_UXX (Fw_Types.Quad_Word);
 
     ------------
     -- Eth_Be --
@@ -57,23 +57,23 @@ is
         Ethtype (1) := Buffer (Buffer'First + 13);
 
         pragma Assert (Buffer'First + 13 <= Buffer'Last);
-        Header.Destination.OUI_0 := Buffer (Buffer'First + 0);
-        Header.Destination.OUI_1 := Buffer (Buffer'First + 1);
-        Header.Destination.OUI_2 := Buffer (Buffer'First + 2);
-        Header.Destination.NIC_0 := Buffer (Buffer'First + 3);
-        Header.Destination.NIC_1 := Buffer (Buffer'First + 4);
-        Header.Destination.NIC_2 := Buffer (Buffer'First + 5);
+        Header.Destination.OUI_0 := Fw_Types.U08 (Buffer (Buffer'First + 0));
+        Header.Destination.OUI_1 := Fw_Types.U08 (Buffer (Buffer'First + 1));
+        Header.Destination.OUI_2 := Fw_Types.U08 (Buffer (Buffer'First + 2));
+        Header.Destination.NIC_0 := Fw_Types.U08 (Buffer (Buffer'First + 3));
+        Header.Destination.NIC_1 := Fw_Types.U08 (Buffer (Buffer'First + 4));
+        Header.Destination.NIC_2 := Fw_Types.U08 (Buffer (Buffer'First + 5));
 
-        Header.Source.OUI_0 := Buffer (Buffer'First + 6);
-        Header.Source.OUI_1 := Buffer (Buffer'First + 7);
-        Header.Source.OUI_2 := Buffer (Buffer'First + 8);
-        Header.Source.NIC_0 := Buffer (Buffer'First + 9);
-        Header.Source.NIC_1 := Buffer (Buffer'First + 10);
-        Header.Source.NIC_2 := Buffer (Buffer'First + 11);
+        Header.Source.OUI_0 := Fw_Types.U08 (Buffer (Buffer'First + 6));
+        Header.Source.OUI_1 := Fw_Types.U08 (Buffer (Buffer'First + 7));
+        Header.Source.OUI_2 := Fw_Types.U08 (Buffer (Buffer'First + 8));
+        Header.Source.NIC_0 := Fw_Types.U08 (Buffer (Buffer'First + 9));
+        Header.Source.NIC_1 := Fw_Types.U08 (Buffer (Buffer'First + 10));
+        Header.Source.NIC_2 := Fw_Types.U08 (Buffer (Buffer'First + 11));
 
         pragma Assert (Fw_Types.U16'Size / 8 = 2);
         pragma Assert (Ethtype'Length = 2);
-        Header.Ethtype := U16_Be (Ethtype);
+        Header.Ethtype := Fw_Types.U16 (U16_Be (Ethtype));
 
         return Header;
     end Eth_Be;
@@ -85,22 +85,22 @@ is
     is
     begin
         Buffer := (others => 0);
-        Buffer (Buffer'First + 0) := Header.Destination.OUI_0;
-        Buffer (Buffer'First + 1) := Header.Destination.OUI_1;
-        Buffer (Buffer'First + 2) := Header.Destination.OUI_2;
-        Buffer (Buffer'First + 3) := Header.Destination.NIC_0;
-        Buffer (Buffer'First + 4) := Header.Destination.NIC_1;
-        Buffer (Buffer'First + 5) := Header.Destination.NIC_2;
+        Buffer (Buffer'First + 0) := Fw_Types.Byte (Header.Destination.OUI_0);
+        Buffer (Buffer'First + 1) := Fw_Types.Byte (Header.Destination.OUI_1);
+        Buffer (Buffer'First + 2) := Fw_Types.Byte (Header.Destination.OUI_2);
+        Buffer (Buffer'First + 3) := Fw_Types.Byte (Header.Destination.NIC_0);
+        Buffer (Buffer'First + 4) := Fw_Types.Byte (Header.Destination.NIC_1);
+        Buffer (Buffer'First + 5) := Fw_Types.Byte (Header.Destination.NIC_2);
 
-        Buffer (Buffer'First +  6) := Header.Source.OUI_0;
-        Buffer (Buffer'First +  7) := Header.Source.OUI_1;
-        Buffer (Buffer'First +  8) := Header.Source.OUI_2;
-        Buffer (Buffer'First +  9) := Header.Source.NIC_0;
-        Buffer (Buffer'First + 10) := Header.Source.NIC_1;
-        Buffer (Buffer'First + 11) := Header.Source.NIC_2;
+        Buffer (Buffer'First +  6) := Fw_Types.Byte (Header.Source.OUI_0);
+        Buffer (Buffer'First +  7) := Fw_Types.Byte (Header.Source.OUI_1);
+        Buffer (Buffer'First +  8) := Fw_Types.Byte (Header.Source.OUI_2);
+        Buffer (Buffer'First +  9) := Fw_Types.Byte (Header.Source.NIC_0);
+        Buffer (Buffer'First + 10) := Fw_Types.Byte (Header.Source.NIC_1);
+        Buffer (Buffer'First + 11) := Fw_Types.Byte (Header.Source.NIC_2);
 
         pragma Assert (Buffer (Buffer'First + 12 .. Buffer'First + 13)'Length = Fw_Types.U16'Size / 8);
-        Be_U16 (Header.Ethtype, Buffer (Buffer'First + 12 .. Buffer'First + 13));
+        Be_U16 (Fw_Types.Word(Header.Ethtype), Buffer (Buffer'First + 12 .. Buffer'First + 13));
     end Eth_Be;
 
     -------------
@@ -113,8 +113,8 @@ is
     is
         Header : Fw_Types.Sl3p;
     begin
-        Header.Sequence_Number := U64_Be (Buffer (Buffer'First .. Buffer'First + 7));
-        Header.Length := U32_Be (Buffer (Buffer'First + 8 .. Buffer'First + 11));
+        Header.Sequence_Number := Fw_Types.U64 (U64_Be (Buffer (Buffer'First .. Buffer'First + 7)));
+        Header.Length := Fw_Types.U32 (U32_Be (Buffer (Buffer'First + 8 .. Buffer'First + 11)));
         return Header;
     end Sl3p_Be;
 
@@ -126,8 +126,8 @@ is
     begin
         Buffer := (others => 0);
         pragma Assert (Buffer (Buffer'First .. Buffer'First + 7)'Length = Fw_Types.U64'Size / 8);
-        Be_U64 (Header.Sequence_Number, Buffer (Buffer'First .. Buffer'First + 7));
-        Be_U32 (Header.Length, Buffer (Buffer'First + 8 .. Buffer'First + 11));
+        Be_U64 (Fw_Types.Quad_Word (Header.Sequence_Number), Buffer (Buffer'First .. Buffer'First + 7));
+        Be_U32 (Fw_Types.Double_Word (Header.Length), Buffer (Buffer'First + 8 .. Buffer'First + 11));
     end Sl3p_Be;
 
     ------------
@@ -140,11 +140,11 @@ is
     is
         Header : Fw_Types.RIL;
     begin
-        Header.Length := U32_Be (Buffer (Buffer'First .. Buffer'First + 3));
+        Header.Length := Fw_Types.U32 (U32_Be (Buffer (Buffer'First .. Buffer'First + 3)));
         pragma Assert (Buffer (Buffer'First + 4 .. Buffer'First + 7)'Length = Fw_Types.U32'Size / 8);
-        Header.ID := U32_Be (Buffer (Buffer'First + 4 .. Buffer'First + 7));
+        Header.ID := Fw_Types.U32 (U32_Be (Buffer (Buffer'First + 4 .. Buffer'First + 7)));
         pragma Assert (Buffer (Buffer'First + 8 .. Buffer'First + 11)'Length = Fw_Types.U32'Size / 8);
-        Header.Token_Event := U32_Be (Buffer (Buffer'First + 8 .. Buffer'First + 11));
+        Header.Token_Event := Fw_Types.U32 (U32_Be (Buffer (Buffer'First + 8 .. Buffer'First + 11)));
         return Header;
     end Ril_Be;
 

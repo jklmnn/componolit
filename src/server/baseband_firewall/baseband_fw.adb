@@ -56,15 +56,6 @@ is
         C_Submit (Instance.Instance, Size, Instance.NIC);
     end Submit;
 
-    procedure Copy (
-                    Dest :    out Fw_Types.Buffer;
-                    Src  :        Fw_Types.Buffer
-                   )
-    is
-    begin
-        Dest (Dest'First .. Dest'Last) := Src (Src'First .. Src'Last);
-    end Copy;
-
     procedure Disassemble (
                            Source      : Fw_Types.Buffer;
                            Direction   : Fw_Types.Direction;
@@ -91,7 +82,7 @@ is
                 Packet_Select_Eth (Eth_Header,
                                    Source,
                                    Direction,
-                                   Status); 
+                                   Status);
             end if;
         end if;
     end Disassemble;
@@ -112,12 +103,17 @@ is
 
         if Eth_Header.Ethtype /= RIL_Proxy_Ethtype then
             Destination_Buffer := (others => 0);
-            if Destination_Buffer'Length >= Source_Buffer'Length then
-                Destination_Buffer (Destination_Buffer'First .. Destination_Buffer'First + Source_Buffer'Length - 1) := Source_Buffer;
+            if Destination_Buffer'Length >= Source_Buffer'Length and Source_Buffer'Length > 0 then
+                pragma Assert (Destination_Buffer (Destination_Buffer'First .. Destination_Buffer'First + Source_Buffer'Length - 1)'Length = Source_Buffer'Length);
+                pragma Assert (Source_Buffer'Last = Source_Buffer'First + Source_Buffer'Length - 1);
+                Destination_Buffer (Destination_Buffer'First .. Destination_Buffer'First + Source_Buffer'Length - 1) :=
+                  Source_Buffer (Source_Buffer'First .. Source_Buffer'Last);
                 Submit (Source_Buffer'Length, Instance);
             end if;
         else
-            if Status = Dissector.Checked then
+            if Status = Dissector.Checked and
+              Destination_Buffer'First + Fw_Types.Eth_Offset + Fw_Types.Sl3p_Offset < Destination_Buffer'Last
+            then
                 Assemble (Eth_Header, Destination_Buffer, Direction, Instance);
             else
                 Genode_Log.Warn ("Dropping packet with unknown direction");
@@ -162,8 +158,8 @@ is
                              Source_Sequence (Dir));
             pragma Assert ((if Status = Dissector.Checked then Packet (Packet'First + Fw_Types.Sl3p_Offset .. Packet'Last)'Length >= Header.Length));
             if Status = Dissector.Checked  and Header.Length > 0 then
-                pragma Assert (Packet (Packet'First + Fw_Types.Sl3p_Offset .. Packet'Last)'Length >= Header.Length);
-                
+                pragma Assert (Packet_Buffer (Dir)'First + Packet_Cursor (Dir).Cat + Header.Length <= Directed_Buffer_Range'Last);
+
                 Cat (Dir,
                      Packet (Packet'First + Fw_Types.Sl3p_Offset .. Packet'Last),
                      Header.Length);
@@ -183,6 +179,7 @@ is
         Start : constant Fw_Types.U32 := Packet_Buffer (Direction)'First + Packet_Cursor (Direction).Cat;
     begin
         pragma Assert (Start + Size <= Directed_Buffer_Range'Last);
+        pragma Assert (Packet_Buffer (Direction) (Start .. Start + Size - 1)'Length = Source (Source'First .. Source'First + Size - 1)'Length);
         Packet_Buffer (Direction) (Start .. Start + Size - 1) :=
           Source (Source'First .. Source'First + Size - 1);
         Packet_Cursor (Direction).Cat := Packet_Cursor (Direction).Cat + Size;
@@ -199,6 +196,7 @@ is
         Status       : Dissector.Result;
         Packet_Split : Boolean := False;
     begin
+        Destination := (others => 0);
         while Packet_Cursor (Direction).Parse + 12 < Packet_Cursor (Direction).Cat loop
 
             Header := Dissector.Ril_Be (Packet_Buffer (Direction) (Packet_Cursor (Direction).Parse ..
@@ -231,7 +229,7 @@ is
                     Genode_Log.Warn ("Invalid RIL packet :" & Dissector.Image (Status));
             end case;
         end loop;
-        
+
         if Packet_Split = False then
             Packet_Cursor (Direction) := (others => 0);
         end if;
@@ -247,16 +245,18 @@ is
     is
         Sl3p_Header : constant Fw_Types.Sl3p := (Sequence_Number => Destination_Sequence (Dir),
                                                  Length          => Packet'Length);
+        Local_Offset : Fw_Types.U32_Index := Destination'First;
     begin
-        pragma Assert (Destination (Destination'First .. Destination'First + Fw_Types.Eth_Offset - 1)'Length = Fw_Types.Eth_Offset);
-        Dissector.Eth_Be (Eth_Header, Destination (Destination'First .. Destination'First + Fw_Types.Eth_Offset - 1));
-        pragma Assert (Destination (Destination'First + Fw_Types.Eth_Offset ..
-                             Destination'First + Fw_Types.Eth_Offset + Fw_Types.Sl3p_Offset - 1)'Length = Fw_Types.Eth_Offset + Fw_Types.Sl3p_Offset);
-        Dissector.Sl3p_Be (Sl3p_Header, Destination (Destination'First + Fw_Types.Eth_Offset ..
-                             Destination'First + Fw_Types.Eth_Offset + Fw_Types.Sl3p_Offset - 1));
-        Copy (Destination (Destination'First + Fw_Types.Eth_Offset + Fw_Types.Sl3p_Offset ..
-                Destination'First + Fw_Types.Eth_Offset + Fw_Types.Sl3p_Offset + Packet'Length - 1),
-              Packet);
+        Destination := (others => 0);
+
+        Dissector.Eth_Be (Eth_Header, Destination (Local_Offset .. Local_Offset + Fw_Types.Eth_Offset - 1));
+
+        Local_Offset := Local_Offset + Fw_Types.Eth_Offset;
+        Dissector.Sl3p_Be (Sl3p_Header, Destination (Local_Offset .. Local_Offset + Fw_Types.Sl3p_Offset - 1));
+
+        Local_Offset := Local_Offset + Fw_Types.Sl3p_Offset;
+        Destination (Local_Offset .. Local_Offset + Packet'Length - 1) := Packet;
+
         Submit (Fw_Types.Eth_Offset + Fw_Types.Sl3p_Offset + Packet'Length, Instance);
         Destination_Sequence (Dir) := Destination_Sequence (Dir) + 1;
     end Packet_Select_RIL;

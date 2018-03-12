@@ -4,6 +4,7 @@ use all type Fw_Types.U16;
 use all type Fw_Types.U32;
 use all type Fw_Types.U64;
 use all type Fw_Types.Direction;
+use all type Fw_Types.U32_Index;
 
 package Dissector
 with
@@ -30,7 +31,7 @@ is
                     ) return Fw_Types.Eth
       with
         Depends => (Eth_Be'Result => Buffer),
-      Pre => Buffer'Length >= 14;
+      Pre => Buffer'Length >= Fw_Types.Eth_Offset;
 
     procedure Eth_Be (
                       Header : Fw_Types.Eth;
@@ -53,7 +54,7 @@ is
                      )
       with
         Depends => (Buffer =>+ Header),
-      Pre => Buffer'Length = 12;
+      Pre => Buffer'Length = Fw_Types.Sl3p_Offset;
 
     function Ril_Be (
                      Buffer : Fw_Types.Buffer

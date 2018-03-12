@@ -3,19 +3,27 @@ with System;
 package Fw_Types
 is
 
-    type U04 is mod 16;
-    for U04'Size use 4;
+    type Byte is mod 256
+      with Size => 16;
 
-    type U08 is mod 256;
-    for U08'Size use 8;
+    type Word is mod 2 ** 16
+      with Size => 16;
 
-    type U16 is mod 2**16;
-    for U16'Size use 16;
+    type Double_Word is mod 2 ** 32
+      with Size => 32;
 
-    type U32 is mod 2**32;
-    for U32'Size use 32;
+    type Quad_Word is mod 2 ** 64
+      with Size => 64;
 
-    subtype U32_Index is U32 range U32'First .. U32'Last - 1;
+    type U08 is new Integer range 0 .. 2 ** 8 - 1
+      with Size => 8;
+
+    type U16 is new Integer range 0 .. 2 ** 16 - 1
+      with Size => 16;
+
+    type U32 is new Long_Integer range 0 .. 2 ** 32 - 1
+      with Size => 32;
+    Subtype U32_Index is U32 range U32'First .. U32'Last - 1;
 
     type U64 is mod 2**64;
     for U64'Size use 64;
@@ -31,7 +39,7 @@ is
         Pre  => Exponent <= U32 (Natural'Last),
         Post => (Exp'Result = U64 (Base ** Natural (Exponent)));
 
-    type Buffer is array (U32_Index range <>) of U08;
+    type Buffer is array (U32_Index range <>) of Byte;
 
     type Mac is
         record
@@ -133,6 +141,18 @@ is
       with
         Depends => (Image'Result => Val);
 
+    function Image (Val : Byte) return H08
+      with
+        Depends => (Image'Result => Val);
+
+    function Image (Val : Word) return H16
+      with
+        Depends => (Image'Result => Val);
+
+    function Image (Val : Double_Word) return H32
+      with
+        Depends => (Image'Result => Val);
+
     type Process is
         record
             Instance : System.Address;
@@ -141,7 +161,7 @@ is
 
 private
 
-    function Hex (Value : U08) return Character
+    function Hex (Value : Byte) return Character
     is
         (
             if Value < 10 then
