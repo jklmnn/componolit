@@ -1,12 +1,9 @@
 with Genode_Log;
 with Fw_Log;
 with Fw_Types;
-with Dissector;
 use all type Fw_Types.U16;
 use all type Fw_Types.U64;
-use all type Fw_Types.Direction;
 use all type Fw_Types.Status;
-use all type Dissector.Result;
 
 package body Baseband_Fw
 is
@@ -104,15 +101,13 @@ is
         if Eth_Header.Ethtype /= RIL_Proxy_Ethtype then
             Destination_Buffer := (others => 0);
             if Destination_Buffer'Length >= Source_Buffer'Length and Source_Buffer'Length > 0 then
-                pragma Assert (Destination_Buffer (Destination_Buffer'First .. Destination_Buffer'First + Source_Buffer'Length - 1)'Length = Source_Buffer'Length);
-                pragma Assert (Source_Buffer'Last = Source_Buffer'First + Source_Buffer'Length - 1);
                 Destination_Buffer (Destination_Buffer'First .. Destination_Buffer'First + Source_Buffer'Length - 1) :=
                   Source_Buffer (Source_Buffer'First .. Source_Buffer'Last);
                 Submit (Source_Buffer'Length, Instance);
             end if;
         else
             if Status = Dissector.Checked and
-              Destination_Buffer'First + Fw_Types.Eth_Offset + Fw_Types.Sl3p_Offset < Destination_Buffer'Last
+              Destination_Buffer'Length > Fw_Types.Eth_Offset + Fw_Types.Sl3p_Offset
             then
                 Assemble (Eth_Header, Destination_Buffer, Direction, Instance);
             else
@@ -131,7 +126,6 @@ is
     is
     begin
         Status := Dissector.Valid (Header, Payload, Dir);
-        pragma Assert ((if Dir = Fw_Types.Unknown then Status /= Dissector.Checked));
         if Status = Dissector.Checked then
             if Payload'Length > Fw_Types.Eth_Offset then
                 Packet_Select_Sl3p (Payload (Payload'First + Fw_Types.Eth_Offset .. Payload'Last),
@@ -150,15 +144,14 @@ is
         Header : Fw_Types.Sl3p;
         Status : Dissector.Result;
     begin
-        if Packet'Length >= Fw_Types.Sl3p_Offset and
-          Packet'First + Fw_Types.Sl3p_Offset < Packet'Last then
+        if Packet'Length >= Fw_Types.Sl3p_Offset then
             Header := Dissector.Sl3p_Be (Packet);
             Status := Valid (Header,
                             Packet (Packet'First + Fw_Types.Sl3p_Offset .. Packet'Last),
                              Source_Sequence (Dir));
-            pragma Assert ((if Status = Dissector.Checked then Packet (Packet'First + Fw_Types.Sl3p_Offset .. Packet'Last)'Length >= Header.Length));
             if Status = Dissector.Checked  and Header.Length > 0 then
-                pragma Assert (Packet_Buffer (Dir)'First + Packet_Cursor (Dir).Cat + Header.Length <= Directed_Buffer_Range'Last);
+                pragma Assert (Packet_Buffer (Dir)'First + Packet_Cursor (Dir).Cat + Header.Length <=
+                                 Directed_Buffer_Range'Last);
 
                 Cat (Dir,
                      Packet (Packet'First + Fw_Types.Sl3p_Offset .. Packet'Last),
@@ -179,7 +172,8 @@ is
         Start : constant Fw_Types.U32 := Packet_Buffer (Direction)'First + Packet_Cursor (Direction).Cat;
     begin
         pragma Assert (Start + Size <= Directed_Buffer_Range'Last);
-        pragma Assert (Packet_Buffer (Direction) (Start .. Start + Size - 1)'Length = Source (Source'First .. Source'First + Size - 1)'Length);
+        pragma Assert (Packet_Buffer (Direction) (Start .. Start + Size - 1)'Length =
+                         Source (Source'First .. Source'First + Size - 1)'Length);
         Packet_Buffer (Direction) (Start .. Start + Size - 1) :=
           Source (Source'First .. Source'First + Size - 1);
         Packet_Cursor (Direction).Cat := Packet_Cursor (Direction).Cat + Size;
@@ -217,7 +211,9 @@ is
                                        Destination,
                                        Eth_Header);
 
-                    if Packet_Cursor (Direction).Parse + Fw_Types.RIL_Offset + Header.Length < Directed_Buffer_Range'Last Then
+                    if Packet_Cursor (Direction).Parse + Fw_Types.RIL_Offset + Header.Length <
+                      Directed_Buffer_Range'Last
+                    then
                         Packet_Cursor (Direction).Parse := Packet_Cursor (Direction).Parse +
                           Fw_Types.RIL_Offset +
                             Header.Length;
@@ -247,18 +243,20 @@ is
                                                  Length          => Packet'Length);
         Local_Offset : Fw_Types.U32_Index := Destination'First;
     begin
-        Destination := (others => 0);
+        if Destination'Length >= Fw_Types.Eth_Offset + Fw_Types.Sl3p_Offset + Packet'Length then
+            Destination := (others => 0);
 
-        Dissector.Eth_Be (Eth_Header, Destination (Local_Offset .. Local_Offset + Fw_Types.Eth_Offset - 1));
+            Dissector.Eth_Be (Eth_Header, Destination (Local_Offset .. Local_Offset + Fw_Types.Eth_Offset - 1));
 
-        Local_Offset := Local_Offset + Fw_Types.Eth_Offset;
-        Dissector.Sl3p_Be (Sl3p_Header, Destination (Local_Offset .. Local_Offset + Fw_Types.Sl3p_Offset - 1));
+            Local_Offset := Local_Offset + Fw_Types.Eth_Offset;
+            Dissector.Sl3p_Be (Sl3p_Header, Destination (Local_Offset .. Local_Offset + Fw_Types.Sl3p_Offset - 1));
 
-        Local_Offset := Local_Offset + Fw_Types.Sl3p_Offset;
-        Destination (Local_Offset .. Local_Offset + Packet'Length - 1) := Packet;
+            Local_Offset := Local_Offset + Fw_Types.Sl3p_Offset;
+            Destination (Local_Offset .. Local_Offset + Packet'Length - 1) := Packet;
 
-        Submit (Fw_Types.Eth_Offset + Fw_Types.Sl3p_Offset + Packet'Length, Instance);
-        Destination_Sequence (Dir) := Destination_Sequence (Dir) + 1;
+            Submit (Fw_Types.Eth_Offset + Fw_Types.Sl3p_Offset + Packet'Length, Instance);
+            Destination_Sequence (Dir) := Destination_Sequence (Dir) + 1;
+        end if;
     end Packet_Select_RIL;
 
 end Baseband_Fw;

@@ -4,7 +4,6 @@ use all type Fw_Types.U16;
 use all type Fw_Types.U32;
 use all type Fw_Types.U64;
 use all type Fw_Types.Direction;
-use all type Fw_Types.U32_Index;
 
 package Dissector
 with
@@ -100,7 +99,7 @@ is
         Depends => (Valid'Result => (Header, Payload)),
         Pre => Payload'Length > 0 and Payload'Length < Fw_Types.U32'Last,
       Post => (if Valid'Result = Checked then
-                 Header.Length <= Payload'Length);
+                 Header.Length <= Payload'Length and Header.Length > 0);
 
     function Image (
                     R : Result

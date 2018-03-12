@@ -100,7 +100,7 @@ is
         Buffer (Buffer'First + 11) := Fw_Types.Byte (Header.Source.NIC_2);
 
         pragma Assert (Buffer (Buffer'First + 12 .. Buffer'First + 13)'Length = Fw_Types.U16'Size / 8);
-        Be_U16 (Fw_Types.Word(Header.Ethtype), Buffer (Buffer'First + 12 .. Buffer'First + 13));
+        Be_U16 (Fw_Types.Word (Header.Ethtype), Buffer (Buffer'First + 12 .. Buffer'First + 13));
     end Eth_Be;
 
     -------------
@@ -214,6 +214,7 @@ is
         v : Result := Unchecked;
     begin
         Check_Condition (v, Header.Length <= Payload'Length, Invalid_Size);
+        Check_Condition (v, Header.Length > 0, Invalid_Size);
         return (if v = Unchecked then Checked else v);
     end Valid;
 

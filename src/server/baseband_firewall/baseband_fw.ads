@@ -2,7 +2,6 @@ with System;
 with Fw_Types;
 with Dissector;
 use all type Fw_Types.U32;
-use all type Fw_Types.U32_Index;
 use all type Fw_Types.Direction;
 use all type Dissector.Result;
 
@@ -80,7 +79,7 @@ private
                        )
       with
         Pre => Direction /= Fw_Types.Unknown and
-        Destination'First + Fw_Types.Eth_Offset + Fw_Types.Sl3p_Offset < Destination'Last;
+        Destination'Length > Fw_Types.Eth_Offset + Fw_Types.Sl3p_Offset;
 
     procedure Packet_Select_Eth (
                                  Header      : Fw_Types.Eth;
@@ -108,8 +107,7 @@ private
       with
         Pre => Dir /= Fw_Types.Unknown and
         Packet'Length > 0 and
-        Destination'Length > Fw_Types.Eth_Offset + Fw_Types.Sl3p_Offset + Packet'Length and
-        Destination'First + Fw_Types.Eth_Offset + Fw_Types.Sl3p_Offset + Packet'Length < Destination'Last;
+        Destination'Length > Fw_Types.Eth_Offset + Fw_Types.Sl3p_Offset;
 
     RIL_Proxy_Ethtype  : constant Fw_Types.U16 := 16#524c#;
     RIL_Proxy_Setup    : constant Fw_Types.U32 := 16#15c70000#;

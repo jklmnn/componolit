@@ -23,7 +23,7 @@ is
 
     type U32 is new Long_Integer range 0 .. 2 ** 32 - 1
       with Size => 32;
-    Subtype U32_Index is U32 range U32'First .. U32'Last - 1;
+    subtype U32_Index is U32 range U32'First .. U32'Last - 1;
 
     type U64 is mod 2**64;
     for U64'Size use 64;
@@ -77,7 +77,7 @@ is
             Ethtype     at 12 range 0 .. 15;
         end record;
 
-    Eth_Offset : constant U32 := 14;
+    Eth_Offset : constant U32_Index := 14;
 
     type Sl3p is
         record
@@ -92,7 +92,7 @@ is
             Length          at 8 range 0 .. 31;
         end record;
 
-    Sl3p_Offset : constant U32 := 12;
+    Sl3p_Offset : constant U32_Index := 12;
 
     type RIL is record
         Length      : U32;
@@ -108,7 +108,7 @@ is
             Token_Event at 8 range 0 .. 31;
         end record;
 
-    RIL_Offset : constant U32 := 12;
+    RIL_Offset : constant U32_Index := 12;
 
     type Packet is record
         Eth_Header : Eth;
