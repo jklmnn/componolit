@@ -22,48 +22,98 @@ is
                    );
 
     subtype Result_String is String (1 .. 7);
+
     subtype Sl3p_Buffer is Fw_Types.Buffer (0 .. 11);
     subtype Eth_Buffer is Fw_Types.Buffer (0 .. 13);
 
+    type Mac is
+        record
+            OUI_0 : Fw_Types.U08;
+            OUI_1 : Fw_Types.U08;
+            OUI_2 : Fw_Types.U08;
+            NIC_0 : Fw_Types.U08;
+            NIC_1 : Fw_Types.U08;
+            NIC_2 : Fw_Types.U08;
+        end record with
+      Size => 48;
+
+    for Mac use
+        record
+            OUI_0 at 0 range 0 .. 7;
+            OUI_1 at 1 range 0 .. 7;
+            OUI_2 at 2 range 0 .. 7;
+            NIC_0 at 3 range 0 .. 7;
+            NIC_1 at 4 range 0 .. 7;
+            NIC_2 at 5 range 0 .. 7;
+        end record;
+
+    type Eth is
+        record
+            Destination : Mac;
+            Source      : Mac;
+            Ethtype     : Fw_Types.U16;
+        end record;
+
+    Eth_Offset : constant Fw_Types.U32_Index := 14;
+
+    subtype Sl3p_Length is Fw_Types.U32 range 0 .. 1488;
+
+    type Sl3p is
+        record
+            Sequence_Number : Fw_Types.U64;
+            Length          : Sl3p_Length;
+            --  Status          : Dissector.Result;
+        end record;
+
+    Sl3p_Offset : constant Fw_Types.U32_Index := 12;
+
+    type RIL is record
+        Length      : Fw_Types.U32;
+        ID          : Fw_Types.U32;
+        Token_Event : Fw_Types.U32;
+    end record;
+
+    RIL_Offset : constant Fw_Types.U32_Index := 12;
+
     function Eth_Be (
                      Buffer : Fw_Types.Buffer
-                    ) return Fw_Types.Eth
+                    ) return Eth
       with
         Depends => (Eth_Be'Result => Buffer),
-      Pre => Buffer'Length >= Fw_Types.Eth_Offset;
+      Pre => Buffer'Length >= Eth_Offset;
 
     procedure Eth_Be (
-                      Header : Fw_Types.Eth;
+                      Header : Eth;
                       Buffer : out Fw_Types.Buffer
                     )
       with
         Depends => (Buffer =>+ Header),
-      Pre => Buffer'Length = Fw_Types.Eth_Offset;
+      Pre => Buffer'Length = Eth_Offset;
 
     function Sl3p_Be (
                       Buffer : Fw_Types.Buffer
-                     ) return Fw_Types.Sl3p
+                     ) return Sl3p
       with
         Depends => (Sl3p_Be'Result => Buffer),
-      Pre => Buffer'Length >= Fw_Types.Sl3p_Offset;
+      Pre => Buffer'Length >= Sl3p_Offset;
 
     procedure Sl3p_Be (
-                      Header : Fw_Types.Sl3p;
+                      Header : Sl3p;
                       Buffer : out Fw_Types.Buffer
                      )
       with
         Depends => (Buffer =>+ Header),
-      Pre => Buffer'Length = Fw_Types.Sl3p_Offset;
+      Pre => Buffer'Length = Sl3p_Offset;
 
     function Ril_Be (
                      Buffer : Fw_Types.Buffer
-                    ) return Fw_Types.RIL
+                    ) return RIL
       with
         Depends => (Ril_Be'Result => Buffer),
-      Pre => Buffer'Length >= Fw_Types.RIL_Offset;
+      Pre => Buffer'Length >= RIL_Offset;
 
     function Valid (
-                    Header  : Fw_Types.Eth;
+                    Header  : Eth;
                     Payload : Fw_Types.Buffer;
                     Dir     : Fw_Types.Direction
                    ) return Result
@@ -76,7 +126,7 @@ is
                 Dir /= Fw_Types.Unknown);
 
     function Valid (
-                    Header   : Fw_Types.Sl3p;
+                    Header   : Sl3p;
                     Payload  : Fw_Types.Buffer;
                     Sequence : Fw_Types.U64
                    ) return Result
@@ -92,7 +142,7 @@ is
                 Payload'Length >= Header.Length);
 
     function Valid (
-                    Header  : Fw_Types.RIL;
+                    Header  : RIL;
                     Payload : Fw_Types.Buffer
                    ) return Result
       with

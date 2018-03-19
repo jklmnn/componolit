@@ -48,9 +48,9 @@ is
 
     function Eth_Be (
                      Buffer : Fw_Types.Buffer
-                    ) return Fw_Types.Eth
+                    ) return Eth
     is
-        Header : Fw_Types.Eth;
+        Header : Eth;
         Ethtype : Fw_Types.Buffer (0 .. 1) := (0, 0);
     begin
         Ethtype (0) := Buffer (Buffer'First + 12);
@@ -79,7 +79,7 @@ is
     end Eth_Be;
 
     procedure Eth_Be (
-                      Header : Fw_Types.Eth;
+                      Header : Eth;
                       Buffer : out Fw_Types.Buffer
                     )
     is
@@ -109,9 +109,9 @@ is
 
     function Sl3p_Be (
                       Buffer : Fw_Types.Buffer
-                     ) return Fw_Types.Sl3p
+                     ) return Sl3p
     is
-        Header : Fw_Types.Sl3p;
+        Header : Sl3p;
     begin
         Header.Sequence_Number := Fw_Types.U64 (U64_Be (Buffer (Buffer'First .. Buffer'First + 7)));
         Header.Length := Fw_Types.U32 (U32_Be (Buffer (Buffer'First + 8 .. Buffer'First + 11)));
@@ -119,7 +119,7 @@ is
     end Sl3p_Be;
 
     procedure Sl3p_Be (
-                       Header : Fw_Types.Sl3p;
+                       Header : Sl3p;
                        Buffer : out Fw_Types.Buffer
                       )
     is
@@ -136,9 +136,9 @@ is
 
     function Ril_Be (
                      Buffer : Fw_Types.Buffer
-                    ) return Fw_Types.RIL
+                    ) return RIL
     is
-        Header : Fw_Types.RIL;
+        Header : RIL;
     begin
         Header.Length := Fw_Types.U32 (U32_Be (Buffer (Buffer'First .. Buffer'First + 3)));
         pragma Assert (Buffer (Buffer'First + 4 .. Buffer'First + 7)'Length = Fw_Types.U32'Size / 8);
@@ -153,7 +153,7 @@ is
     -----------
 
     function Valid (
-                    Header : Fw_Types.Eth;
+                    Header : Eth;
                     Payload : Fw_Types.Buffer;
                     Dir     : Fw_Types.Direction
                    ) return Result
@@ -184,7 +184,7 @@ is
     -----------
 
     function Valid (
-                    Header   : Fw_Types.Sl3p;
+                    Header   : Sl3p;
                     Payload  : Fw_Types.Buffer;
                     Sequence : Fw_Types.U64
                    ) return Result
@@ -207,7 +207,7 @@ is
     -----------
 
     function Valid (
-                    Header  : Fw_Types.RIL;
+                    Header  : RIL;
                     Payload : Fw_Types.Buffer
                    ) return Result
     is

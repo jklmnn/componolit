@@ -1,4 +1,3 @@
-with Genode_Log;
 with Fw_Log;
 with Fw_Types;
 use all type Fw_Types.U16;
@@ -56,7 +55,7 @@ is
     procedure Disassemble (
                            Source      : Fw_Types.Buffer;
                            Direction   : Fw_Types.Direction;
-                           Eth_Header  : out Fw_Types.Eth;
+                           Eth_Header  : out Dissector.Eth;
                            Status      : out Dissector.Result
                           )
     is
@@ -64,7 +63,7 @@ is
     begin
         Status := Dissector.Unchecked;
         Eth_Header := ((others => 0), (others => 0), 0);
-        if Source'Length >= Fw_Types.Eth_Offset then
+        if Source'Length >= Dissector.Eth_Offset then
             Eth_Header := Dissector.Eth_Be (Source);
             if Eth_Header.Ethtype = RIL_Proxy_Ethtype then
                 Genode_Log.Log ("(" & Fw_Types.Image (Eth_Header.Ethtype) & ") "
@@ -87,12 +86,12 @@ is
     --  FIXME: We should do the conversion from Packet -> Buffer in SPARK!
     procedure Filter (
                       Source_Buffer      : Fw_Types.Buffer;
-                      Destination_Buffer : out Fw_Types.Eth_Packet;
+                      Destination_Buffer : out Eth_Packet;
                       Direction          : Fw_Types.Direction;
                       Instance           : Fw_Types.Process
                      )
     is
-        Eth_Header : Fw_Types.Eth;
+        Eth_Header : Dissector.Eth;
         Status     : Dissector.Result;
     begin
         Destination_Buffer := (others => 0);
@@ -107,7 +106,7 @@ is
             end if;
         else
             if Status = Dissector.Checked and
-              Destination_Buffer'Length > Fw_Types.Eth_Offset + Fw_Types.Sl3p_Offset
+              Destination_Buffer'Length > Dissector.Eth_Offset + Dissector.Sl3p_Offset
             then
                 Assemble (Eth_Header, Destination_Buffer, Direction, Instance);
             else
@@ -118,7 +117,7 @@ is
     end Filter;
 
     procedure Packet_Select_Eth (
-                                 Header  : Fw_Types.Eth;
+                                 Header  : Dissector.Eth;
                                  Payload : Fw_Types.Buffer;
                                  Dir     : Fw_Types.Direction;
                                  Status  : out Dissector.Result
@@ -127,8 +126,8 @@ is
     begin
         Status := Dissector.Valid (Header, Payload, Dir);
         if Status = Dissector.Checked then
-            if Payload'Length > Fw_Types.Eth_Offset then
-                Packet_Select_Sl3p (Payload (Payload'First + Fw_Types.Eth_Offset .. Payload'Last),
+            if Payload'Length > Dissector.Eth_Offset then
+                Packet_Select_Sl3p (Payload (Payload'First + Dissector.Eth_Offset .. Payload'Last),
                                     Dir);
             end if;
         else
@@ -141,22 +140,25 @@ is
                                   Dir         : Fw_Types.Direction
                                  )
     is
-        Header : Fw_Types.Sl3p;
+        Header : Dissector.Sl3p;
         Status : Dissector.Result;
     begin
-        if Packet'Length >= Fw_Types.Sl3p_Offset then
+        if Packet'Length >= Dissector.Sl3p_Offset then
             Header := Dissector.Sl3p_Be (Packet);
             Status := Valid (Header,
-                            Packet (Packet'First + Fw_Types.Sl3p_Offset .. Packet'Last),
+                            Packet (Packet'First + Dissector.Sl3p_Offset .. Packet'Last),
                              Source_Sequence (Dir));
             if Status = Dissector.Checked  and Header.Length > 0 then
-                pragma Assert (Packet_Buffer (Dir)'First + Packet_Cursor (Dir).Cat + Header.Length <=
-                                 Directed_Buffer_Range'Last);
-
-                Cat (Dir,
-                     Packet (Packet'First + Fw_Types.Sl3p_Offset .. Packet'Last),
-                     Header.Length);
-                Source_Sequence (Dir) := Header.Sequence_Number;
+                if Packet_Buffer (Dir)'First + Packet_Cursor (Dir).Cat + Header.Length <=
+                  Directed_Buffer_Range'Last
+                then
+                    Cat (Dir,
+                         Packet (Packet'First + Dissector.Sl3p_Offset .. Packet'Last),
+                         Header.Length);
+                    Source_Sequence (Dir) := Header.Sequence_Number;
+                else
+                    Genode_Log.Warn ("Failed to cat packet, buffer to small");
+                end if;
             else
                 Genode_Log.Warn ("Invalid sl3p packet :" & Dissector.Image (Status));
             end if;
@@ -180,13 +182,13 @@ is
     end Cat;
 
     procedure Assemble (
-                        Eth_Header  : Fw_Types.Eth;
-                        Destination : in out Fw_Types.Eth_Packet;
+                        Eth_Header  : Dissector.Eth;
+                        Destination : in out Eth_Packet;
                         Direction   : Fw_Types.Direction;
                         Instance    : Fw_Types.Process
                        )
     is
-        Header       : Fw_Types.RIL;
+        Header       : Dissector.RIL;
         Status       : Dissector.Result;
         Packet_Split : Boolean := False;
     begin
@@ -195,26 +197,26 @@ is
             Header := Dissector.Ril_Be (Packet_Buffer (Direction) (Packet_Cursor (Direction).Parse ..
                                           Packet_Cursor (Direction).Cat));
             Status := Dissector.Valid (Header, Packet_Buffer (Direction) (Packet_Cursor (Direction).Parse +
-                                         Fw_Types.RIL_Offset .. Packet_Cursor (Direction).Cat));
+                                         Dissector.RIL_Offset .. Packet_Cursor (Direction).Cat));
 
             case Status is
                 when Dissector.Checked =>
 
                     Packet_Select_RIL (Packet_Buffer (Direction) (Packet_Cursor (Direction).Parse +
-                                         Fw_Types.RIL_Offset ..
+                                         Dissector.RIL_Offset ..
                                            Packet_Cursor (Direction).Parse +
-                                         Fw_Types.RIL_Offset +
+                                         Dissector.RIL_Offset +
                                            Header.Length - 1),
                                        Direction,
                                        Instance,
                                        Destination,
                                        Eth_Header);
 
-                    if Packet_Cursor (Direction).Parse + Fw_Types.RIL_Offset + Header.Length <
+                    if Packet_Cursor (Direction).Parse + Dissector.RIL_Offset + Header.Length <
                       Directed_Buffer_Range'Last
                     then
                         Packet_Cursor (Direction).Parse := Packet_Cursor (Direction).Parse +
-                          Fw_Types.RIL_Offset +
+                          Dissector.RIL_Offset +
                             Header.Length;
                     end if;
 
@@ -234,11 +236,11 @@ is
                                  Packet      : Fw_Types.Buffer;
                                  Dir         : Fw_Types.Direction;
                                  Instance    : Fw_Types.Process;
-                                 Destination : in out Fw_Types.Eth_Packet;
-                                 Eth_Header  : Fw_Types.Eth
+                                 Destination : in out Eth_Packet;
+                                 Eth_Header  : Dissector.Eth
                                 )
     is
-        Sl3p_Header   : Fw_Types.Sl3p;
+        Sl3p_Header   : Dissector.Sl3p;
         Packet_Offset : Fw_Types.U32_Index := Packet'First;
         Packet_Size   : Fw_Types.U32;
     begin
@@ -250,30 +252,30 @@ is
                             Length          => (if Packet_Size > 1488 then 1488 else Packet_Size));
             Send_Ethernet_Packet (Packet (Packet_Offset .. Packet_Offset + Sl3p_Header.Length - 1),
                                   Eth_Header, Sl3p_Header, Destination, Instance);
+            Destination_Sequence (Dir) := Destination_Sequence (Dir) + 1;
             exit Fragment when Packet_Size < 1488;
             if Packet_Offset + Packet_Size < Packet'Last then
                 Packet_Offset := Packet_Offset + Packet_Size;
             end if;
         end loop Fragment;
---        end if;
     end Packet_Select_RIL;
 
     procedure Send_Ethernet_Packet (
                                     Payload     : Fw_Types.Buffer;
-                                    Eth_Header  : Fw_Types.Eth;
-                                    Sl3p_Header : Fw_Types.Sl3p;
-                                    Destination : in out Fw_Types.Eth_Packet;
+                                    Eth_Header  : Dissector.Eth;
+                                    Sl3p_Header : Dissector.Sl3p;
+                                    Destination : in out Eth_Packet;
                                     Instance    : Fw_Types.Process
                                    )
     is
         Local_Offset : Fw_Types.U32_Index := Destination'First;
     begin
-        Dissector.Eth_Be (Eth_Header, Destination (Local_Offset .. Local_Offset + Fw_Types.Eth_Offset - 1));
-        Local_Offset := Local_Offset + Fw_Types.Eth_Offset;
-        Dissector.Sl3p_Be (Sl3p_Header, Destination (Local_Offset .. Local_Offset + Fw_Types.Sl3p_Offset - 1));
-        Local_Offset := Local_Offset + Fw_Types.Sl3p_Offset;
+        Dissector.Eth_Be (Eth_Header, Destination (Local_Offset .. Local_Offset + Dissector.Eth_Offset - 1));
+        Local_Offset := Local_Offset + Dissector.Eth_Offset;
+        Dissector.Sl3p_Be (Sl3p_Header, Destination (Local_Offset .. Local_Offset + Dissector.Sl3p_Offset - 1));
+        Local_Offset := Local_Offset + Dissector.Sl3p_Offset;
         Destination (Local_Offset .. Local_Offset + Payload'Length - 1) := Payload;
-        Submit (Fw_Types.Eth_Offset + Fw_Types.Sl3p_Offset + Payload'Length, Instance);
+        Submit (Dissector.Eth_Offset + Dissector.Sl3p_Offset + Payload'Length, Instance);
     end Send_Ethernet_Packet;
 
 end Baseband_Fw;

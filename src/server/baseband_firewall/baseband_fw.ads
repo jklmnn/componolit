@@ -1,6 +1,7 @@
 with System;
 with Fw_Types;
 with Dissector;
+with Genode_Log;
 use all type Fw_Types.U32;
 use all type Fw_Types.Direction;
 use all type Dissector.Result;
@@ -44,9 +45,11 @@ private
     type Directed_Cursor is array (Fw_Types.Direction range Fw_Types.BP .. Fw_Types.AP) of Cursor;
     Packet_Cursor : Directed_Cursor := (others => (others => 0));
 
+    subtype Eth_Packet is Fw_Types.Buffer (0 .. 1513);
+
     procedure Filter (
                       Source_Buffer      :        Fw_Types.Buffer;
-                      Destination_Buffer : out Fw_Types.Eth_Packet;
+                      Destination_Buffer : out Eth_Packet;
                       Direction          :        Fw_Types.Direction;
                       Instance           : Fw_Types.Process
                      );
@@ -60,29 +63,32 @@ private
         Pre => Direction /= Fw_Types.Unknown and then
         Size <= Source'Length and then
         Size > 0 and then
-        Packet_Buffer (Direction)'First + Packet_Cursor (Direction).Cat + Size <= Directed_Buffer_Range'Last;
+        Packet_Buffer (Direction)'First + Packet_Cursor (Direction).Cat + Size <= Directed_Buffer_Range'Last,
+      Global => (In_Out => (Packet_Cursor, Packet_Buffer));
 
     procedure Disassemble (
                            Source      : Fw_Types.Buffer;
                            Direction   : Fw_Types.Direction;
-                           Eth_Header  : out Fw_Types.Eth;
+                           Eth_Header  : out Dissector.Eth;
                            Status      : out Dissector.Result
                           )
       with
     Post => (if Direction = Fw_Types.Unknown then Status /= Dissector.Checked);
 
     procedure Assemble (
-                        Eth_Header  : Fw_Types.Eth;
-                        Destination : in out Fw_Types.Eth_Packet;
+                        Eth_Header  : Dissector.Eth;
+                        Destination : in out Eth_Packet;
                         Direction   : Fw_Types.Direction;
                         Instance    : Fw_Types.Process
                        )
       with
         Pre => Direction /= Fw_Types.Unknown and
-        Destination'Length > Fw_Types.Eth_Offset + Fw_Types.Sl3p_Offset;
+        Destination'Length > Dissector.Eth_Offset + Dissector.Sl3p_Offset,
+        Global => (In_Out => (Packet_Cursor, Destination_Sequence, Genode_Log.State),
+                   Input  => (Packet_Buffer));
 
     procedure Packet_Select_Eth (
-                                 Header      : Fw_Types.Eth;
+                                 Header      : Dissector.Eth;
                                  Payload     : Fw_Types.Buffer;
                                  Dir         : Fw_Types.Direction;
                                  Status      : out Dissector.Result
@@ -95,29 +101,32 @@ private
                                   Dir         : Fw_Types.Direction
                                  )
       with
-        Pre => Dir /= Fw_Types.Unknown and Packet'Length <= 1500;
+        Pre    => Dir /= Fw_Types.Unknown and
+        Packet'Length <= 1500,
+        Global => (In_Out => (Source_Sequence, Packet_Buffer, Packet_Cursor, Genode_Log.State));
 
     procedure Packet_Select_RIL (
                                  Packet      : Fw_Types.Buffer;
                                  Dir         : Fw_Types.Direction;
                                  Instance    : Fw_Types.Process;
-                                 Destination : in out Fw_Types.Eth_Packet;
-                                 Eth_Header  : Fw_Types.Eth
+                                 Destination : in out Eth_Packet;
+                                 Eth_Header  : Dissector.Eth
                                 )
       with
         Pre => Dir /= Fw_Types.Unknown and
         Packet'Length > 0 and
-        Destination'Length > Fw_Types.Eth_Offset + Fw_Types.Sl3p_Offset;
+        Destination'Length > Dissector.Eth_Offset + Dissector.Sl3p_Offset,
+        Global => (In_Out => (Destination_Sequence));
 
     procedure Send_Ethernet_Packet (
                                     Payload     : Fw_Types.Buffer;
-                                    Eth_Header  : Fw_Types.Eth;
-                                    Sl3p_Header : Fw_Types.Sl3p;
-                                    Destination : in out Fw_Types.Eth_Packet;
+                                    Eth_Header  : Dissector.Eth;
+                                    Sl3p_Header : Dissector.Sl3p;
+                                    Destination : in out Eth_Packet;
                                     Instance    : Fw_Types.Process
                                    )
       with Pre => Payload'Length > 0 and Payload'Length <= 1488 and
-      Destination'Length > Fw_Types.Eth_Offset + Fw_Types.Sl3p_Offset;
+      Destination'Length > Dissector.Eth_Offset + Dissector.Sl3p_Offset;
 
     RIL_Proxy_Ethtype  : constant Fw_Types.U16 := 16#524c#;
     RIL_Proxy_Setup    : constant Fw_Types.U32 := 16#15c70000#;
