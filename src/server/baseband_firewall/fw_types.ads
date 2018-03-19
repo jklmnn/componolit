@@ -40,6 +40,7 @@ is
         Post => (Exp'Result = U64 (Base ** Natural (Exponent)));
 
     type Buffer is array (U32_Index range <>) of Byte;
+    subtype Eth_Packet is Buffer (0 .. 1513);
 
     type Mac is
         record
@@ -79,10 +80,12 @@ is
 
     Eth_Offset : constant U32_Index := 14;
 
+    subtype Sl3p_Length is U32 range 0 .. 1488;
+
     type Sl3p is
         record
             Sequence_Number : U64;
-            Length : U32;
+            Length : Sl3p_Length;
         end record with
       Size => 96;
 

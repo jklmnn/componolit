@@ -13,7 +13,7 @@ namespace Baseband {
     class Firewall;
     struct Main;
     enum {
-        BUFSIZE = 4096
+        BUFSIZE = 1514 // ethernet packet length w/o 802.1Q and CRC
     };
 }
 

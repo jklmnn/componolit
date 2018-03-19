@@ -87,7 +87,7 @@ is
     --  FIXME: We should do the conversion from Packet -> Buffer in SPARK!
     procedure Filter (
                       Source_Buffer      : Fw_Types.Buffer;
-                      Destination_Buffer : out Fw_Types.Buffer;
+                      Destination_Buffer : out Fw_Types.Eth_Packet;
                       Direction          : Fw_Types.Direction;
                       Instance           : Fw_Types.Process
                      )
@@ -95,11 +95,11 @@ is
         Eth_Header : Fw_Types.Eth;
         Status     : Dissector.Result;
     begin
+        Destination_Buffer := (others => 0);
 
         Disassemble (Source_Buffer, Direction, Eth_Header, Status);
 
         if Eth_Header.Ethtype /= RIL_Proxy_Ethtype then
-            Destination_Buffer := (others => 0);
             if Destination_Buffer'Length >= Source_Buffer'Length and Source_Buffer'Length > 0 then
                 Destination_Buffer (Destination_Buffer'First .. Destination_Buffer'First + Source_Buffer'Length - 1) :=
                   Source_Buffer (Source_Buffer'First .. Source_Buffer'Last);
@@ -181,7 +181,7 @@ is
 
     procedure Assemble (
                         Eth_Header  : Fw_Types.Eth;
-                        Destination : out Fw_Types.Buffer;
+                        Destination : in out Fw_Types.Eth_Packet;
                         Direction   : Fw_Types.Direction;
                         Instance    : Fw_Types.Process
                        )
@@ -190,7 +190,6 @@ is
         Status       : Dissector.Result;
         Packet_Split : Boolean := False;
     begin
-        Destination := (others => 0);
         while Packet_Cursor (Direction).Parse + 12 < Packet_Cursor (Direction).Cat loop
 
             Header := Dissector.Ril_Be (Packet_Buffer (Direction) (Packet_Cursor (Direction).Parse ..
@@ -235,28 +234,46 @@ is
                                  Packet      : Fw_Types.Buffer;
                                  Dir         : Fw_Types.Direction;
                                  Instance    : Fw_Types.Process;
-                                 Destination : out Fw_Types.Buffer;
+                                 Destination : in out Fw_Types.Eth_Packet;
                                  Eth_Header  : Fw_Types.Eth
                                 )
     is
-        Sl3p_Header : constant Fw_Types.Sl3p := (Sequence_Number => Destination_Sequence (Dir),
-                                                 Length          => Packet'Length);
+        Sl3p_Header   : Fw_Types.Sl3p;
+        Packet_Offset : Fw_Types.U32_Index := Packet'First;
+        Packet_Size   : Fw_Types.U32;
+    begin
+        Fragment : loop
+            pragma Loop_Invariant (Packet_Offset <= Packet'Last);
+            pragma Loop_Invariant (Packet_Offset >= Packet'First);
+            Packet_Size := Packet'Last - Packet_Offset + 1;
+            Sl3p_Header := (Sequence_Number => Destination_Sequence (Dir),
+                            Length          => (if Packet_Size > 1488 then 1488 else Packet_Size));
+            Send_Ethernet_Packet (Packet (Packet_Offset .. Packet_Offset + Sl3p_Header.Length - 1),
+                                  Eth_Header, Sl3p_Header, Destination, Instance);
+            exit Fragment when Packet_Size < 1488;
+            if Packet_Offset + Packet_Size < Packet'Last then
+                Packet_Offset := Packet_Offset + Packet_Size;
+            end if;
+        end loop Fragment;
+--        end if;
+    end Packet_Select_RIL;
+
+    procedure Send_Ethernet_Packet (
+                                    Payload     : Fw_Types.Buffer;
+                                    Eth_Header  : Fw_Types.Eth;
+                                    Sl3p_Header : Fw_Types.Sl3p;
+                                    Destination : in out Fw_Types.Eth_Packet;
+                                    Instance    : Fw_Types.Process
+                                   )
+    is
         Local_Offset : Fw_Types.U32_Index := Destination'First;
     begin
-        if Destination'Length >= Fw_Types.Eth_Offset + Fw_Types.Sl3p_Offset + Packet'Length then
-            Destination := (others => 0);
-
-            Dissector.Eth_Be (Eth_Header, Destination (Local_Offset .. Local_Offset + Fw_Types.Eth_Offset - 1));
-
-            Local_Offset := Local_Offset + Fw_Types.Eth_Offset;
-            Dissector.Sl3p_Be (Sl3p_Header, Destination (Local_Offset .. Local_Offset + Fw_Types.Sl3p_Offset - 1));
-
-            Local_Offset := Local_Offset + Fw_Types.Sl3p_Offset;
-            Destination (Local_Offset .. Local_Offset + Packet'Length - 1) := Packet;
-
-            Submit (Fw_Types.Eth_Offset + Fw_Types.Sl3p_Offset + Packet'Length, Instance);
-            Destination_Sequence (Dir) := Destination_Sequence (Dir) + 1;
-        end if;
-    end Packet_Select_RIL;
+        Dissector.Eth_Be (Eth_Header, Destination (Local_Offset .. Local_Offset + Fw_Types.Eth_Offset - 1));
+        Local_Offset := Local_Offset + Fw_Types.Eth_Offset;
+        Dissector.Sl3p_Be (Sl3p_Header, Destination (Local_Offset .. Local_Offset + Fw_Types.Sl3p_Offset - 1));
+        Local_Offset := Local_Offset + Fw_Types.Sl3p_Offset;
+        Destination (Local_Offset .. Local_Offset + Payload'Length - 1) := Payload;
+        Submit (Fw_Types.Eth_Offset + Fw_Types.Sl3p_Offset + Payload'Length, Instance);
+    end Send_Ethernet_Packet;
 
 end Baseband_Fw;

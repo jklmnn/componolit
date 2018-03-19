@@ -46,7 +46,7 @@ private
 
     procedure Filter (
                       Source_Buffer      :        Fw_Types.Buffer;
-                      Destination_Buffer :    out Fw_Types.Buffer;
+                      Destination_Buffer : out Fw_Types.Eth_Packet;
                       Direction          :        Fw_Types.Direction;
                       Instance           : Fw_Types.Process
                      );
@@ -73,7 +73,7 @@ private
 
     procedure Assemble (
                         Eth_Header  : Fw_Types.Eth;
-                        Destination : out Fw_Types.Buffer;
+                        Destination : in out Fw_Types.Eth_Packet;
                         Direction   : Fw_Types.Direction;
                         Instance    : Fw_Types.Process
                        )
@@ -101,13 +101,23 @@ private
                                  Packet      : Fw_Types.Buffer;
                                  Dir         : Fw_Types.Direction;
                                  Instance    : Fw_Types.Process;
-                                 Destination : out Fw_Types.Buffer;
+                                 Destination : in out Fw_Types.Eth_Packet;
                                  Eth_Header  : Fw_Types.Eth
                                 )
       with
         Pre => Dir /= Fw_Types.Unknown and
         Packet'Length > 0 and
         Destination'Length > Fw_Types.Eth_Offset + Fw_Types.Sl3p_Offset;
+
+    procedure Send_Ethernet_Packet (
+                                    Payload     : Fw_Types.Buffer;
+                                    Eth_Header  : Fw_Types.Eth;
+                                    Sl3p_Header : Fw_Types.Sl3p;
+                                    Destination : in out Fw_Types.Eth_Packet;
+                                    Instance    : Fw_Types.Process
+                                   )
+      with Pre => Payload'Length > 0 and Payload'Length <= 1488 and
+      Destination'Length > Fw_Types.Eth_Offset + Fw_Types.Sl3p_Offset;
 
     RIL_Proxy_Ethtype  : constant Fw_Types.U16 := 16#524c#;
     RIL_Proxy_Setup    : constant Fw_Types.U32 := 16#15c70000#;
