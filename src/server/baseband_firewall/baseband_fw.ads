@@ -23,7 +23,9 @@ package Baseband_Fw is
     procedure Submit (
                       Size : Fw_Types.U32;
                       Instance : Fw_Types.Process
-                     );
+                     )
+      with
+        Pre => Size >= 60;
 
 private
 

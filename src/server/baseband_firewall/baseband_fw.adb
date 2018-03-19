@@ -21,15 +21,20 @@ is
       with
         SPARK_Mode => Off
     is
-        Dest_Buf : Fw_Types.Buffer (0 .. Dest_Size);
+        Dest_Buf : Fw_Types.Buffer (0 .. Dest_Size - 1);
         for Dest_Buf'Address use Dest;
 
-        Src_Buf : Fw_Types.Buffer (0 .. Src_Size);
+        Src_Buf : Fw_Types.Buffer (0 .. Src_Size - 1);
         for Src_Buf'Address use Src;
 
         Instance : constant Fw_Types.Process := (Firewall, Iface);
     begin
-        Filter (Src_Buf, Dest_Buf, Fw_Types.Direction'Val (Dir), Instance);
+        if Dest_Buf'Length > 1514 then
+            Filter (Src_Buf, Dest_Buf (Dest_Buf'First .. Dest_Buf'First + 1513),
+                    Fw_Types.Direction'Val (Dir), Instance);
+        else
+            Filter (Src_Buf, Dest_Buf, Fw_Types.Direction'Val (Dir), Instance);
+        end if;
     end Filter_Hook;
 
     procedure Submit (
@@ -58,25 +63,13 @@ is
                            Eth_Header  : out Dissector.Eth
                           )
     is
-        Arrow : constant Fw_Log.Arrow := Fw_Log.Directed_Arrow (Direction);
     begin
         Eth_Header := ((others => 0), (others => 0), 0, Unchecked);
         if Source'Length > Dissector.Eth_Offset then
             Eth_Header := Dissector.Eth_Be (Source, Direction);
             if Eth_Header.Ethtype = RIL_Proxy_Ethtype and Eth_Header.Status = Dissector.Checked then
-                Genode_Log.Log ("(" & Fw_Types.Image (Eth_Header.Ethtype) & ") "
-                                & Arrow & " "
-                                & Fw_Types.Image (Eth_Header.Source.OUI_0) & ":"
-                                & Fw_Types.Image (Eth_Header.Source.OUI_1) & ":"
-                                & Fw_Types.Image (Eth_Header.Source.OUI_2) & ":"
-                                & Fw_Types.Image (Eth_Header.Source.NIC_0) & ":"
-                                & Fw_Types.Image (Eth_Header.Source.NIC_1) & ":"
-                                & Fw_Types.Image (Eth_Header.Source.NIC_2)
-                               );
                 Packet_Select_Sl3p (Source (Source'First + Dissector.Eth_Offset .. Source'Last),
                                     Direction);
-            else
-                Genode_Log.Warn ("Invalid ethernet packet: " & Dissector.Image (Eth_Header.Status));
             end if;
         end if;
     end Disassemble;
@@ -90,12 +83,24 @@ is
                      )
     is
         Eth_Header : Dissector.Eth;
+        Arrow : constant Fw_Log.Arrow := Fw_Log.Directed_Arrow (Direction);
     begin
         Destination_Buffer := (others => 0);
 
         Disassemble (Source_Buffer, Direction, Eth_Header);
 
+        Genode_Log.Log ("(" & Fw_Types.Image (Eth_Header.Ethtype) & ") "
+                                & Arrow & " "
+                                & Fw_Types.Image (Eth_Header.Source.OUI_0) & ":"
+                                & Fw_Types.Image (Eth_Header.Source.OUI_1) & ":"
+                                & Fw_Types.Image (Eth_Header.Source.OUI_2) & ":"
+                                & Fw_Types.Image (Eth_Header.Source.NIC_0) & ":"
+                                & Fw_Types.Image (Eth_Header.Source.NIC_1) & ":"
+                                & Fw_Types.Image (Eth_Header.Source.NIC_2)
+                               );
+
         if Eth_Header.Ethtype /= RIL_Proxy_Ethtype then
+
             if Destination_Buffer'Length >= Source_Buffer'Length and Source_Buffer'Length > 0 then
                 Destination_Buffer (Destination_Buffer'First .. Destination_Buffer'First + Source_Buffer'Length - 1) :=
                   Source_Buffer (Source_Buffer'First .. Source_Buffer'Last);
@@ -107,7 +112,8 @@ is
             then
                 Assemble (Eth_Header, Destination_Buffer, Direction, Instance);
             else
-                Genode_Log.Warn ("Dropping packet with unknown direction");
+                Genode_Log.Warn ("Invalid ethernet packet: " & Dissector.Image (Eth_Header.Status) & " " &
+                                Fw_Types.Image (Fw_Types.U32 (Source_Buffer'Length)));
             end if;
         end if;
 
@@ -134,7 +140,9 @@ is
                     Genode_Log.Warn ("Failed to cat packet, buffer to small");
                 end if;
             else
-                Genode_Log.Warn ("Invalid sl3p packet :" & Dissector.Image (Header.Status));
+                Genode_Log.Warn ("Invalid sl3p packet: " & Dissector.Image (Header.Status));
+                Genode_Log.Warn ("Sl3p: " & Fw_Types.Image (Header.Length) & " : " &
+                                   Fw_Types.Image (Fw_Types.U32 (Packet'Length)));
             end if;
         end if;
     end Packet_Select_Sl3p;
@@ -150,6 +158,7 @@ is
         pragma Assert (Start + Size <= Directed_Buffer_Range'Last);
         pragma Assert (Packet_Buffer (Direction) (Start .. Start + Size - 1)'Length =
                          Source (Source'First .. Source'First + Size - 1)'Length);
+        Genode_Log.Log ("Cat " & Fw_Types.Image (Size));
         Packet_Buffer (Direction) (Start .. Start + Size - 1) :=
           Source (Source'First .. Source'First + Size - 1);
         Packet_Cursor (Direction).Cat := Packet_Cursor (Direction).Cat + Size;
@@ -163,36 +172,48 @@ is
                        )
     is
         Header       : Dissector.RIL;
-        Packet_Split : Boolean := False;
+        Packet_Split : Boolean := True;
     begin
-        while Packet_Cursor (Direction).Parse + 12 < Packet_Cursor (Direction).Cat loop
+        Genode_Log.Log ("Assemble " &
+                          Fw_Types.Image (Packet_Cursor (Direction).Parse)
+                        & " " & Fw_Types.Image (Packet_Cursor (Direction).Cat));
+        while Packet_Cursor (Direction).Parse + 8 <= Packet_Cursor (Direction).Cat loop
+            --  pragma Loop_Variant (Increases => Packet_Cursor (Direction).Parse);
 
+            Genode_Log.Log ("Loop " &
+                              Fw_Types.Image (Packet_Cursor (Direction).Parse) & " " &
+                              Fw_Types.Image (Packet_Cursor (Direction).Cat));
             Header := Dissector.Ril_Be (Packet_Buffer (Direction) (Packet_Cursor (Direction).Parse ..
                                           Packet_Cursor (Direction).Cat));
 
             case Header.Status is
                 when Dissector.Checked =>
 
-                    if Packet_Cursor (Direction).Parse + Dissector.RIL_Offset + Header.Length <
+                    Packet_Split := False;
+                    Genode_Log.Log ("RIL: " & Fw_Types.Image (Header.Token_Event));
+
+                    if Packet_Cursor (Direction).Parse + Header.Length + 4 <=
                       Directed_Buffer_Range'Last
                     then
-                        Packet_Select_RIL (Packet_Buffer (Direction) (Packet_Cursor (Direction).Parse +
-                                             Dissector.RIL_Offset ..
+                        Packet_Select_RIL (Packet_Buffer (Direction) (Packet_Cursor (Direction).Parse ..
                                                Packet_Cursor (Direction).Parse +
-                                             Dissector.RIL_Offset +
-                                               Header.Length - 1),
+                                               Header.Length + 3),
                                            Direction,
                                            Instance,
                                            Destination,
                                            Eth_Header);
 
                         Packet_Cursor (Direction).Parse := Packet_Cursor (Direction).Parse +
-                          Dissector.RIL_Offset +
-                            Header.Length;
+                          4 + Header.Length;
                     end if;
 
                 when Dissector.Invalid_Size =>
                     Packet_Split := True;
+                    Genode_Log.Warn ("Packet split " & Fw_Types.Image (Header.Length) & " " &
+                                       Fw_Types.Image (Fw_Types.U32 (Packet_Buffer (Direction)
+                                       (Packet_Cursor (Direction).Parse ..
+                                          Packet_Cursor (Direction).Cat)'Length)));
+                    exit;
                 when others =>
                     Genode_Log.Warn ("Invalid RIL packet :" & Dissector.Image (Header.Status));
             end case;
@@ -219,6 +240,10 @@ is
             pragma Loop_Invariant (Packet_Offset <= Packet'Last);
             pragma Loop_Invariant (Packet_Offset >= Packet'First);
             Packet_Size := Packet'Last - Packet_Offset + 1;
+            Genode_Log.Log ("Fragment " & Fw_Types.Image (Packet_Size) & " " &
+                              Fw_Types.Image (Packet_Offset) & " " &
+                              Fw_Types.Image (Fw_Types.U32 (Packet'Last)) & " " &
+                              Fw_Types.Image (Packet (Packet'Last)));
             Sl3p_Header := (Sequence_Number => Destination_Sequence (Dir),
                             Length          => (if Packet_Size > 1488 then 1488 else Packet_Size),
                             Status          => Dissector.Checked);
@@ -241,13 +266,17 @@ is
                                    )
     is
         Local_Offset : Fw_Types.U32_Index := Destination'First;
+        Size : Fw_Types.U32 := Dissector.Eth_Offset + Dissector.Sl3p_Offset + Payload'Length;
     begin
         Dissector.Eth_Be (Eth_Header, Destination (Local_Offset .. Local_Offset + Dissector.Eth_Offset - 1));
         Local_Offset := Local_Offset + Dissector.Eth_Offset;
         Dissector.Sl3p_Be (Sl3p_Header, Destination (Local_Offset .. Local_Offset + Dissector.Sl3p_Offset - 1));
         Local_Offset := Local_Offset + Dissector.Sl3p_Offset;
         Destination (Local_Offset .. Local_Offset + Payload'Length - 1) := Payload;
-        Submit (Dissector.Eth_Offset + Dissector.Sl3p_Offset + Payload'Length, Instance);
+        if Size < 60 then
+            Size := 60;
+        end if;
+        Submit (Size, Instance);
     end Send_Ethernet_Packet;
 
 end Baseband_Fw;

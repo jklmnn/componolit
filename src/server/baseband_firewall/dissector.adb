@@ -1,5 +1,7 @@
 pragma Ada_2012;
 
+with Genode_Log;
+
 package body Dissector
 with
 SPARK_Mode
@@ -73,7 +75,7 @@ is
         Header.Ethtype := Fw_Types.U16 (U16_Be (Buffer (Buffer'First + 12 .. Buffer'First + 13)));
 
         Check_Condition (Header.Status, Buffer'Length <= 1514, Payload_To_Long);
-        Check_Condition (Header.Status, Buffer'Length >= 60, Payload_To_Short);
+        --  Check_Condition (Header.Status, Buffer'Length >= 60, Payload_To_Short);
         --  Mac address : 2a:43:4d:50:2a:0(a|b)
         Check_Condition (Header.Status, Header.Source.OUI_0 = 16#2a#, Forbidden_Address);
         Check_Condition (Header.Status, Header.Source.OUI_1 = 16#43#, Forbidden_Address);
@@ -134,12 +136,10 @@ is
 
         Check_Condition (Header.Status, Header.Sequence_Number > 0, Invalid_Sequence_Number);
         Check_Condition (Header.Status, Header.Sequence_Number > Sequence, Invalid_Sequence_Number);
+        Genode_Log.Log ("Sl3p raw length: " & Fw_Types.Image (Raw_Length));
         Check_Condition (Header.Status, Raw_Length <= 1488, Invalid_Size);
-        if Raw_Length <= 34 then
-            Check_Condition (Header.Status, Buffer'Length = 34 + Sl3p_Offset, Invalid_Size);
-        else
-            Check_Condition (Header.Status, Buffer'Length = Raw_Length + Sl3p_Offset, Invalid_Size);
-        end if;
+        Check_Condition (Header.Status, Raw_Length <= Buffer'Length, Invalid_Size);
+        Genode_Log.Log ("Buffer length: " & Fw_Types.Image (Fw_Types.U32 (Buffer'Length)));
         Header.Length := (if Header.Status = Unchecked then Raw_Length else 0);
         Header.Status := (if Header.Status = Unchecked then Checked else Header.Status);
         return Header;
@@ -169,8 +169,11 @@ is
         Header.Status := Unchecked;
         Header.Length := Fw_Types.U32 (U32_Be (Buffer (Buffer'First .. Buffer'First + 3)));
         Header.ID := Fw_Types.U32 (U32_Be (Buffer (Buffer'First + 4 .. Buffer'First + 7)));
-        Header.Token_Event := Fw_Types.U32 (U32_Be (Buffer (Buffer'First + 8 .. Buffer'First + 11)));
-
+        if Buffer'Length >= RIL_Offset then
+            Header.Token_Event := Fw_Types.U32 (U32_Be (Buffer (Buffer'First + 8 .. Buffer'First + 11)));
+        else
+            Header.Token_Event := 0;
+        end if;
         Check_Condition (Header.Status, Header.Length <= Buffer'Length, Invalid_Size);
         Check_Condition (Header.Status, Header.Length > 0, Invalid_Size);
         Header.Status := (if Header.Status = Unchecked then Checked else Header.Status);

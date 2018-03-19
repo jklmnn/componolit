@@ -30,14 +30,15 @@ class Baseband::Firewall : public Nic_filter::Filter
         
         static void submit(void *self, unsigned size, int iface)
         {
+            Genode::log(__func__, Buffer_dump<Genode::uint32_t, 4>((Genode::uint32_t *)(((Firewall*)self)->buffer), Genode::min(16, size / sizeof(Genode::uint32_t))));
             ((Firewall *)self)->send(((Firewall *)self)->buffer, size, iface);
         }
 
         void filter(const void *data, const Genode::size_t size, Nic_filter::direction_t dir, int iface) override
         {
-            int select_send = 0;
-            //Genode::log(__func__, Buffer_dump<Genode::uint32_t, 4>((Genode::uint32_t *)data, Genode::min(16, size / sizeof(Genode::uint32_t))));
+            Genode::log(__func__, Buffer_dump<Genode::uint32_t, 4>((Genode::uint32_t *)data, Genode::min(16, size / sizeof(Genode::uint32_t))));
             baseband_fw__filter_hook(buffer, data, sizeof(buffer), size, (int)dir, this, iface);
+            Genode::log(__func__, " returned");
         }
 };
 

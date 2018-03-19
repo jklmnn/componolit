@@ -4,7 +4,7 @@ package Fw_Types
 is
 
     type Byte is mod 256
-      with Size => 16;
+      with Size => 8;
 
     type Word is mod 2 ** 16
       with Size => 16;

@@ -108,8 +108,7 @@ is
       Pre => Buffer'Length >= Sl3p_Offset and Buffer'Length <= 1500,
       Post => (if Sl3p_Be'Result.Status = Checked then
                  Sl3p_Be'Result.Sequence_Number > Sequence and
-                   (if Sl3p_Be'Result.Length <= 34 then Buffer'Length = 34 + Sl3p_Offset else
-                        Buffer'Length = Sl3p_Be'Result.Length + Sl3p_Offset) and
+                   Sl3p_Be'Result.Length <= Buffer'Length and
                      Sl3p_Be'Result.Length <= 1488 and
                        Sl3p_Be'Result.Sequence_Number > 0 and
                          Buffer'Length >= Sl3p_Be'Result.Length);
@@ -127,7 +126,7 @@ is
                     ) return RIL
       with
         Depends => (Ril_Be'Result => Buffer),
-      Pre => Buffer'Length >= RIL_Offset,
+      Pre => Buffer'Length >= 8,
       Post => (if Ril_Be'Result.Status = Checked then
                  Ril_Be'Result.Length <= Buffer'Length and Ril_Be'Result.Length > 0);
 
