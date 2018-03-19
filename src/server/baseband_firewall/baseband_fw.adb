@@ -55,17 +55,15 @@ is
     procedure Disassemble (
                            Source      : Fw_Types.Buffer;
                            Direction   : Fw_Types.Direction;
-                           Eth_Header  : out Dissector.Eth;
-                           Status      : out Dissector.Result
+                           Eth_Header  : out Dissector.Eth
                           )
     is
         Arrow : constant Fw_Log.Arrow := Fw_Log.Directed_Arrow (Direction);
     begin
-        Status := Dissector.Unchecked;
-        Eth_Header := ((others => 0), (others => 0), 0);
-        if Source'Length >= Dissector.Eth_Offset then
-            Eth_Header := Dissector.Eth_Be (Source);
-            if Eth_Header.Ethtype = RIL_Proxy_Ethtype then
+        Eth_Header := ((others => 0), (others => 0), 0, Unchecked);
+        if Source'Length > Dissector.Eth_Offset then
+            Eth_Header := Dissector.Eth_Be (Source, Direction);
+            if Eth_Header.Ethtype = RIL_Proxy_Ethtype and Eth_Header.Status = Dissector.Checked then
                 Genode_Log.Log ("(" & Fw_Types.Image (Eth_Header.Ethtype) & ") "
                                 & Arrow & " "
                                 & Fw_Types.Image (Eth_Header.Source.OUI_0) & ":"
@@ -75,10 +73,10 @@ is
                                 & Fw_Types.Image (Eth_Header.Source.NIC_1) & ":"
                                 & Fw_Types.Image (Eth_Header.Source.NIC_2)
                                );
-                Packet_Select_Eth (Eth_Header,
-                                   Source,
-                                   Direction,
-                                   Status);
+                Packet_Select_Sl3p (Source (Source'First + Dissector.Eth_Offset .. Source'Last),
+                                    Direction);
+            else
+                Genode_Log.Warn ("Invalid ethernet packet: " & Dissector.Image (Eth_Header.Status));
             end if;
         end if;
     end Disassemble;
@@ -92,11 +90,10 @@ is
                      )
     is
         Eth_Header : Dissector.Eth;
-        Status     : Dissector.Result;
     begin
         Destination_Buffer := (others => 0);
 
-        Disassemble (Source_Buffer, Direction, Eth_Header, Status);
+        Disassemble (Source_Buffer, Direction, Eth_Header);
 
         if Eth_Header.Ethtype /= RIL_Proxy_Ethtype then
             if Destination_Buffer'Length >= Source_Buffer'Length and Source_Buffer'Length > 0 then
@@ -105,7 +102,7 @@ is
                 Submit (Source_Buffer'Length, Instance);
             end if;
         else
-            if Status = Dissector.Checked and
+            if Eth_Header.Status = Dissector.Checked and
               Destination_Buffer'Length > Dissector.Eth_Offset + Dissector.Sl3p_Offset
             then
                 Assemble (Eth_Header, Destination_Buffer, Direction, Instance);
@@ -116,39 +113,16 @@ is
 
     end Filter;
 
-    procedure Packet_Select_Eth (
-                                 Header  : Dissector.Eth;
-                                 Payload : Fw_Types.Buffer;
-                                 Dir     : Fw_Types.Direction;
-                                 Status  : out Dissector.Result
-                                )
-    is
-    begin
-        Status := Dissector.Valid (Header, Payload, Dir);
-        if Status = Dissector.Checked then
-            if Payload'Length > Dissector.Eth_Offset then
-                Packet_Select_Sl3p (Payload (Payload'First + Dissector.Eth_Offset .. Payload'Last),
-                                    Dir);
-            end if;
-        else
-            Genode_Log.Warn ("Invalid ethernet packet: " & Dissector.Image (Status));
-        end if;
-    end Packet_Select_Eth;
-
     procedure Packet_Select_Sl3p (
                                   Packet      : Fw_Types.Buffer;
                                   Dir         : Fw_Types.Direction
                                  )
     is
         Header : Dissector.Sl3p;
-        Status : Dissector.Result;
     begin
         if Packet'Length >= Dissector.Sl3p_Offset then
-            Header := Dissector.Sl3p_Be (Packet);
-            Status := Valid (Header,
-                            Packet (Packet'First + Dissector.Sl3p_Offset .. Packet'Last),
-                             Source_Sequence (Dir));
-            if Status = Dissector.Checked  and Header.Length > 0 then
+            Header := Dissector.Sl3p_Be (Packet, Source_Sequence (Dir));
+            if Header.Status = Dissector.Checked and Header.Length > 0 then
                 if Packet_Buffer (Dir)'First + Packet_Cursor (Dir).Cat + Header.Length <=
                   Directed_Buffer_Range'Last
                 then
@@ -160,7 +134,7 @@ is
                     Genode_Log.Warn ("Failed to cat packet, buffer to small");
                 end if;
             else
-                Genode_Log.Warn ("Invalid sl3p packet :" & Dissector.Image (Status));
+                Genode_Log.Warn ("Invalid sl3p packet :" & Dissector.Image (Header.Status));
             end if;
         end if;
     end Packet_Select_Sl3p;
@@ -189,32 +163,29 @@ is
                        )
     is
         Header       : Dissector.RIL;
-        Status       : Dissector.Result;
         Packet_Split : Boolean := False;
     begin
         while Packet_Cursor (Direction).Parse + 12 < Packet_Cursor (Direction).Cat loop
 
             Header := Dissector.Ril_Be (Packet_Buffer (Direction) (Packet_Cursor (Direction).Parse ..
                                           Packet_Cursor (Direction).Cat));
-            Status := Dissector.Valid (Header, Packet_Buffer (Direction) (Packet_Cursor (Direction).Parse +
-                                         Dissector.RIL_Offset .. Packet_Cursor (Direction).Cat));
 
-            case Status is
+            case Header.Status is
                 when Dissector.Checked =>
-
-                    Packet_Select_RIL (Packet_Buffer (Direction) (Packet_Cursor (Direction).Parse +
-                                         Dissector.RIL_Offset ..
-                                           Packet_Cursor (Direction).Parse +
-                                         Dissector.RIL_Offset +
-                                           Header.Length - 1),
-                                       Direction,
-                                       Instance,
-                                       Destination,
-                                       Eth_Header);
 
                     if Packet_Cursor (Direction).Parse + Dissector.RIL_Offset + Header.Length <
                       Directed_Buffer_Range'Last
                     then
+                        Packet_Select_RIL (Packet_Buffer (Direction) (Packet_Cursor (Direction).Parse +
+                                             Dissector.RIL_Offset ..
+                                               Packet_Cursor (Direction).Parse +
+                                             Dissector.RIL_Offset +
+                                               Header.Length - 1),
+                                           Direction,
+                                           Instance,
+                                           Destination,
+                                           Eth_Header);
+
                         Packet_Cursor (Direction).Parse := Packet_Cursor (Direction).Parse +
                           Dissector.RIL_Offset +
                             Header.Length;
@@ -223,7 +194,7 @@ is
                 when Dissector.Invalid_Size =>
                     Packet_Split := True;
                 when others =>
-                    Genode_Log.Warn ("Invalid RIL packet :" & Dissector.Image (Status));
+                    Genode_Log.Warn ("Invalid RIL packet :" & Dissector.Image (Header.Status));
             end case;
         end loop;
 
@@ -249,7 +220,8 @@ is
             pragma Loop_Invariant (Packet_Offset >= Packet'First);
             Packet_Size := Packet'Last - Packet_Offset + 1;
             Sl3p_Header := (Sequence_Number => Destination_Sequence (Dir),
-                            Length          => (if Packet_Size > 1488 then 1488 else Packet_Size));
+                            Length          => (if Packet_Size > 1488 then 1488 else Packet_Size),
+                            Status          => Dissector.Checked);
             Send_Ethernet_Packet (Packet (Packet_Offset .. Packet_Offset + Sl3p_Header.Length - 1),
                                   Eth_Header, Sl3p_Header, Destination, Instance);
             Destination_Sequence (Dir) := Destination_Sequence (Dir) + 1;

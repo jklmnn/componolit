@@ -69,11 +69,10 @@ private
     procedure Disassemble (
                            Source      : Fw_Types.Buffer;
                            Direction   : Fw_Types.Direction;
-                           Eth_Header  : out Dissector.Eth;
-                           Status      : out Dissector.Result
+                           Eth_Header  : out Dissector.Eth
                           )
       with
-    Post => (if Direction = Fw_Types.Unknown then Status /= Dissector.Checked);
+    Post => (if Direction = Fw_Types.Unknown then Eth_Header.Status /= Dissector.Checked);
 
     procedure Assemble (
                         Eth_Header  : Dissector.Eth;
@@ -82,19 +81,10 @@ private
                         Instance    : Fw_Types.Process
                        )
       with
-        Pre => Direction /= Fw_Types.Unknown and
+        Pre => Direction /= Fw_Types.Unknown and Eth_Header.Status = Dissector.Checked and
         Destination'Length > Dissector.Eth_Offset + Dissector.Sl3p_Offset,
         Global => (In_Out => (Packet_Cursor, Destination_Sequence, Genode_Log.State),
                    Input  => (Packet_Buffer));
-
-    procedure Packet_Select_Eth (
-                                 Header      : Dissector.Eth;
-                                 Payload     : Fw_Types.Buffer;
-                                 Dir         : Fw_Types.Direction;
-                                 Status      : out Dissector.Result
-                                )
-      with
-        Post => (if Dir = Fw_Types.Unknown then Status /= Dissector.Checked);
 
     procedure Packet_Select_Sl3p (
                                   Packet      : Fw_Types.Buffer;
@@ -115,7 +105,8 @@ private
       with
         Pre => Dir /= Fw_Types.Unknown and
         Packet'Length > 0 and
-        Destination'Length > Dissector.Eth_Offset + Dissector.Sl3p_Offset,
+        Destination'Length > Dissector.Eth_Offset + Dissector.Sl3p_Offset and
+        Eth_Header.Status = Dissector.Checked,
         Global => (In_Out => (Destination_Sequence));
 
     procedure Send_Ethernet_Packet (
@@ -126,7 +117,8 @@ private
                                     Instance    : Fw_Types.Process
                                    )
       with Pre => Payload'Length > 0 and Payload'Length <= 1488 and
-      Destination'Length > Dissector.Eth_Offset + Dissector.Sl3p_Offset;
+      Destination'Length > Dissector.Eth_Offset + Dissector.Sl3p_Offset and
+      Eth_Header.Status = Dissector.Checked and Sl3p_Header.Status = Dissector.Checked;
 
     RIL_Proxy_Ethtype  : constant Fw_Types.U16 := 16#524c#;
     RIL_Proxy_Setup    : constant Fw_Types.U32 := 16#15c70000#;

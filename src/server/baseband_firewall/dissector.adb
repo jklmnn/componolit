@@ -47,14 +47,13 @@ is
     ------------
 
     function Eth_Be (
-                     Buffer : Fw_Types.Buffer
+                     Buffer : Fw_Types.Buffer;
+                     Dir    : Fw_Types.Direction
                     ) return Eth
     is
         Header : Eth;
-        Ethtype : Fw_Types.Buffer (0 .. 1) := (0, 0);
     begin
-        Ethtype (0) := Buffer (Buffer'First + 12);
-        Ethtype (1) := Buffer (Buffer'First + 13);
+        Header.Status := Unchecked;
 
         pragma Assert (Buffer'First + 13 <= Buffer'Last);
         Header.Destination.OUI_0 := Fw_Types.U08 (Buffer (Buffer'First + 0));
@@ -71,10 +70,26 @@ is
         Header.Source.NIC_1 := Fw_Types.U08 (Buffer (Buffer'First + 10));
         Header.Source.NIC_2 := Fw_Types.U08 (Buffer (Buffer'First + 11));
 
-        pragma Assert (Fw_Types.U16'Size / 8 = 2);
-        pragma Assert (Ethtype'Length = 2);
-        Header.Ethtype := Fw_Types.U16 (U16_Be (Ethtype));
+        Header.Ethtype := Fw_Types.U16 (U16_Be (Buffer (Buffer'First + 12 .. Buffer'First + 13)));
 
+        Check_Condition (Header.Status, Buffer'Length <= 1514, Payload_To_Long);
+        Check_Condition (Header.Status, Buffer'Length >= 60, Payload_To_Short);
+        --  Mac address : 2a:43:4d:50:2a:0(a|b)
+        Check_Condition (Header.Status, Header.Source.OUI_0 = 16#2a#, Forbidden_Address);
+        Check_Condition (Header.Status, Header.Source.OUI_1 = 16#43#, Forbidden_Address);
+        Check_Condition (Header.Status, Header.Source.OUI_2 = 16#4d#, Forbidden_Address);
+        Check_Condition (Header.Status, Header.Source.NIC_0 = 16#50#, Forbidden_Address);
+        Check_Condition (Header.Status, Header.Source.NIC_1 = 16#2a#, Forbidden_Address);
+        case Dir is
+            when Fw_Types.BP =>
+                Check_Condition (Header.Status, Header.Source.NIC_2 = 16#0b#, Invalid_Direction);
+            when Fw_Types.AP =>
+                Check_Condition (Header.Status, Header.Source.NIC_2 = 16#0a#, Invalid_Direction);
+            when others =>
+                Check_Condition (Header.Status, False, Invalid_Direction);
+        end case;
+
+        Header.Status := (if Header.Status = Unchecked then Checked else Header.Status);
         return Header;
     end Eth_Be;
 
@@ -99,7 +114,6 @@ is
         Buffer (Buffer'First + 10) := Fw_Types.Byte (Header.Source.NIC_1);
         Buffer (Buffer'First + 11) := Fw_Types.Byte (Header.Source.NIC_2);
 
-        pragma Assert (Buffer (Buffer'First + 12 .. Buffer'First + 13)'Length = Fw_Types.U16'Size / 8);
         Be_U16 (Fw_Types.Word (Header.Ethtype), Buffer (Buffer'First + 12 .. Buffer'First + 13));
     end Eth_Be;
 
@@ -108,13 +122,26 @@ is
     -------------
 
     function Sl3p_Be (
-                      Buffer : Fw_Types.Buffer
+                      Buffer   : Fw_Types.Buffer;
+                      Sequence : Fw_Types.U64
                      ) return Sl3p
     is
         Header : Sl3p;
+        Raw_Length : constant Fw_Types.U32 := Fw_Types.U32 (U32_Be (Buffer (Buffer'First + 8 .. Buffer'First + 11)));
     begin
+        Header.Status := Unchecked;
         Header.Sequence_Number := Fw_Types.U64 (U64_Be (Buffer (Buffer'First .. Buffer'First + 7)));
-        Header.Length := Fw_Types.U32 (U32_Be (Buffer (Buffer'First + 8 .. Buffer'First + 11)));
+
+        Check_Condition (Header.Status, Header.Sequence_Number > 0, Invalid_Sequence_Number);
+        Check_Condition (Header.Status, Header.Sequence_Number > Sequence, Invalid_Sequence_Number);
+        Check_Condition (Header.Status, Raw_Length <= 1488, Invalid_Size);
+        if Raw_Length <= 34 then
+            Check_Condition (Header.Status, Buffer'Length = 34 + Sl3p_Offset, Invalid_Size);
+        else
+            Check_Condition (Header.Status, Buffer'Length = Raw_Length + Sl3p_Offset, Invalid_Size);
+        end if;
+        Header.Length := (if Header.Status = Unchecked then Raw_Length else 0);
+        Header.Status := (if Header.Status = Unchecked then Checked else Header.Status);
         return Header;
     end Sl3p_Be;
 
@@ -125,7 +152,6 @@ is
     is
     begin
         Buffer := (others => 0);
-        pragma Assert (Buffer (Buffer'First .. Buffer'First + 7)'Length = Fw_Types.U64'Size / 8);
         Be_U64 (Fw_Types.Quad_Word (Header.Sequence_Number), Buffer (Buffer'First .. Buffer'First + 7));
         Be_U32 (Fw_Types.Double_Word (Header.Length), Buffer (Buffer'First + 8 .. Buffer'First + 11));
     end Sl3p_Be;
@@ -140,83 +166,16 @@ is
     is
         Header : RIL;
     begin
+        Header.Status := Unchecked;
         Header.Length := Fw_Types.U32 (U32_Be (Buffer (Buffer'First .. Buffer'First + 3)));
-        pragma Assert (Buffer (Buffer'First + 4 .. Buffer'First + 7)'Length = Fw_Types.U32'Size / 8);
         Header.ID := Fw_Types.U32 (U32_Be (Buffer (Buffer'First + 4 .. Buffer'First + 7)));
-        pragma Assert (Buffer (Buffer'First + 8 .. Buffer'First + 11)'Length = Fw_Types.U32'Size / 8);
         Header.Token_Event := Fw_Types.U32 (U32_Be (Buffer (Buffer'First + 8 .. Buffer'First + 11)));
+
+        Check_Condition (Header.Status, Header.Length <= Buffer'Length, Invalid_Size);
+        Check_Condition (Header.Status, Header.Length > 0, Invalid_Size);
+        Header.Status := (if Header.Status = Unchecked then Checked else Header.Status);
         return Header;
     end Ril_Be;
-
-    -----------
-    -- Valid --
-    -----------
-
-    function Valid (
-                    Header : Eth;
-                    Payload : Fw_Types.Buffer;
-                    Dir     : Fw_Types.Direction
-                   ) return Result
-    is
-        v : Result := Unchecked;
-    begin
-        Check_Condition (v, Payload'Length <= 1500, Payload_To_Long);
-        Check_Condition (v, Payload'Length >= 46, Payload_To_Short);
-        --  Mac address : 2a:43:4d:50:2a:0(a|b)
-        Check_Condition (v, Header.Source.OUI_0 = 16#2a#, Forbidden_Address);
-        Check_Condition (v, Header.Source.OUI_1 = 16#43#, Forbidden_Address);
-        Check_Condition (v, Header.Source.OUI_2 = 16#4d#, Forbidden_Address);
-        Check_Condition (v, Header.Source.NIC_0 = 16#50#, Forbidden_Address);
-        Check_Condition (v, Header.Source.NIC_1 = 16#2a#, Forbidden_Address);
-        case Dir is
-            when Fw_Types.BP =>
-                Check_Condition (v, Header.Source.NIC_2 = 16#0b#, Invalid_Direction);
-            when Fw_Types.AP =>
-                Check_Condition (v, Header.Source.NIC_2 = 16#0a#, Invalid_Direction);
-            when others =>
-                Check_Condition (v, False, Invalid_Direction);
-        end case;
-        return (if v = Unchecked then Checked else v);
-    end Valid;
-
-    -----------
-    -- Valid --
-    -----------
-
-    function Valid (
-                    Header   : Sl3p;
-                    Payload  : Fw_Types.Buffer;
-                    Sequence : Fw_Types.U64
-                   ) return Result
-    is
-        v : Result := Unchecked;
-    begin
-        Check_Condition (v, Header.Sequence_Number > 0, Invalid_Sequence_Number);
-        Check_Condition (v, Header.Sequence_Number > Sequence, Invalid_Sequence_Number);
-        Check_Condition (v, Header.Length <= 1488, Invalid_Size);
-        if Header.Length <= 34 then
-            Check_Condition (v, Payload'Length = 34, Invalid_Size);
-        else
-            Check_Condition (v, Payload'Length = Header.Length, Invalid_Size);
-        end if;
-        return (if v = Unchecked then Checked else v);
-    end Valid;
-
-    -----------
-    -- Valid --
-    -----------
-
-    function Valid (
-                    Header  : RIL;
-                    Payload : Fw_Types.Buffer
-                   ) return Result
-    is
-        v : Result := Unchecked;
-    begin
-        Check_Condition (v, Header.Length <= Payload'Length, Invalid_Size);
-        Check_Condition (v, Header.Length > 0, Invalid_Size);
-        return (if v = Unchecked then Checked else v);
-    end Valid;
 
     procedure Check_Condition (
                                Status : in out Result;

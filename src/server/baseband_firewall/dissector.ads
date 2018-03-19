@@ -52,6 +52,7 @@ is
             Destination : Mac;
             Source      : Mac;
             Ethtype     : Fw_Types.U16;
+            Status      : Result;
         end record;
 
     Eth_Offset : constant Fw_Types.U32_Index := 14;
@@ -62,7 +63,7 @@ is
         record
             Sequence_Number : Fw_Types.U64;
             Length          : Sl3p_Length;
-            --  Status          : Dissector.Result;
+            Status          : Result;
         end record;
 
     Sl3p_Offset : constant Fw_Types.U32_Index := 12;
@@ -71,16 +72,23 @@ is
         Length      : Fw_Types.U32;
         ID          : Fw_Types.U32;
         Token_Event : Fw_Types.U32;
+        Status      : Result;
     end record;
 
     RIL_Offset : constant Fw_Types.U32_Index := 12;
 
     function Eth_Be (
-                     Buffer : Fw_Types.Buffer
+                     Buffer : Fw_Types.Buffer;
+                     Dir    : Fw_Types.Direction
                     ) return Eth
       with
-        Depends => (Eth_Be'Result => Buffer),
-      Pre => Buffer'Length >= Eth_Offset;
+        Depends => (Eth_Be'Result => (Buffer, Dir)),
+        Pre => Buffer'Length >= Eth_Offset,
+        Post => (if Eth_Be'Result.Status = Checked then
+                   Buffer'Length <= 1514 and
+                     Buffer'Length >= 60 and
+                       Eth_Be'Result.Source.NIC_2 /= 0 and
+                         Dir /= Fw_Types.Unknown);
 
     procedure Eth_Be (
                       Header : Eth;
@@ -88,14 +96,23 @@ is
                     )
       with
         Depends => (Buffer =>+ Header),
-      Pre => Buffer'Length = Eth_Offset;
+      Pre => Buffer'Length = Eth_Offset and
+      Header.Status = Checked;
 
     function Sl3p_Be (
-                      Buffer : Fw_Types.Buffer
+                      Buffer : Fw_Types.Buffer;
+                      Sequence : Fw_Types.U64
                      ) return Sl3p
       with
-        Depends => (Sl3p_Be'Result => Buffer),
-      Pre => Buffer'Length >= Sl3p_Offset;
+        Depends => (Sl3p_Be'Result => (Buffer, Sequence)),
+      Pre => Buffer'Length >= Sl3p_Offset and Buffer'Length <= 1500,
+      Post => (if Sl3p_Be'Result.Status = Checked then
+                 Sl3p_Be'Result.Sequence_Number > Sequence and
+                   (if Sl3p_Be'Result.Length <= 34 then Buffer'Length = 34 + Sl3p_Offset else
+                        Buffer'Length = Sl3p_Be'Result.Length + Sl3p_Offset) and
+                     Sl3p_Be'Result.Length <= 1488 and
+                       Sl3p_Be'Result.Sequence_Number > 0 and
+                         Buffer'Length >= Sl3p_Be'Result.Length);
 
     procedure Sl3p_Be (
                       Header : Sl3p;
@@ -103,53 +120,16 @@ is
                      )
       with
         Depends => (Buffer =>+ Header),
-      Pre => Buffer'Length = Sl3p_Offset;
+      Pre => Buffer'Length = Sl3p_Offset and Header.Status = Checked;
 
     function Ril_Be (
                      Buffer : Fw_Types.Buffer
                     ) return RIL
       with
         Depends => (Ril_Be'Result => Buffer),
-      Pre => Buffer'Length >= RIL_Offset;
-
-    function Valid (
-                    Header  : Eth;
-                    Payload : Fw_Types.Buffer;
-                    Dir     : Fw_Types.Direction
-                   ) return Result
-      with
-        Depends => (Valid'Result => (Header, Payload, Dir)),
-        Post => (if Valid'Result = Checked then
-                   Payload'Length <= 1500 and
-                     Payload'Length >= 46 and
-                       Header.Source.NIC_2 /= 0 and
-                Dir /= Fw_Types.Unknown);
-
-    function Valid (
-                    Header   : Sl3p;
-                    Payload  : Fw_Types.Buffer;
-                    Sequence : Fw_Types.U64
-                   ) return Result
-      with
-        Depends => (Valid'Result => (Header, Payload, Sequence)),
-        Pre => Payload'Length <= 1500,
-        Post => (if Valid'Result = Checked then
-                   Header.Sequence_Number > Sequence and
-                     (if Header.Length <= 34 then Payload'Length = 34 else
-                            Payload'Length = Header.Length) and
-                         Header.Length <= 1488 and
-                           Header.Sequence_Number > 0 and
-                Payload'Length >= Header.Length);
-
-    function Valid (
-                    Header  : RIL;
-                    Payload : Fw_Types.Buffer
-                   ) return Result
-      with
-        Depends => (Valid'Result => (Header, Payload)),
-        Pre => Payload'Length > 0 and Payload'Length < Fw_Types.U32'Last,
-      Post => (if Valid'Result = Checked then
-                 Header.Length <= Payload'Length and Header.Length > 0);
+      Pre => Buffer'Length >= RIL_Offset,
+      Post => (if Ril_Be'Result.Status = Checked then
+                 Ril_Be'Result.Length <= Buffer'Length and Ril_Be'Result.Length > 0);
 
     function Image (
                     R : Result
