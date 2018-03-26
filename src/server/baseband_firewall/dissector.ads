@@ -86,7 +86,7 @@ is
         Pre => Buffer'Length >= Eth_Offset,
         Post => (if Eth_Be'Result.Status = Checked then
                    Buffer'Length <= 1514 and
-                     Buffer'Length >= 60 and
+                     Buffer'Length >= Eth_Offset and
                        Eth_Be'Result.Source.NIC_2 /= 0 and
                          Dir /= Fw_Types.Unknown);
 
@@ -108,7 +108,7 @@ is
       Pre => Buffer'Length >= Sl3p_Offset and Buffer'Length <= 1500,
       Post => (if Sl3p_Be'Result.Status = Checked then
                  Sl3p_Be'Result.Sequence_Number > Sequence and
-                   Sl3p_Be'Result.Length <= Buffer'Length and
+                   Sl3p_Be'Result.Length + Sl3p_Offset <= Buffer'Length and
                      Sl3p_Be'Result.Length <= 1488 and
                        Sl3p_Be'Result.Sequence_Number > 0 and
                          Buffer'Length >= Sl3p_Be'Result.Length);

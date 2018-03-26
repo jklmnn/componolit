@@ -20,12 +20,14 @@ package Baseband_Fw is
                           Iface     : Integer
                          );
 
+    Minimal_Submit_Size : constant Fw_Types.U32 := 60;
+
     procedure Submit (
                       Size : Fw_Types.U32;
                       Instance : Fw_Types.Process
                      )
       with
-        Pre => Size >= 60;
+        Pre => Size >= Minimal_Submit_Size;
 
 private
 

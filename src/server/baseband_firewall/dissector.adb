@@ -1,7 +1,5 @@
 pragma Ada_2012;
 
-with Genode_Log;
-
 package body Dissector
 with
 SPARK_Mode
@@ -75,7 +73,7 @@ is
         Header.Ethtype := Fw_Types.U16 (U16_Be (Buffer (Buffer'First + 12 .. Buffer'First + 13)));
 
         Check_Condition (Header.Status, Buffer'Length <= 1514, Payload_To_Long);
-        --  Check_Condition (Header.Status, Buffer'Length >= 60, Payload_To_Short);
+        Check_Condition (Header.Status, Buffer'Length >= Eth_Offset, Payload_To_Short);
         --  Mac address : 2a:43:4d:50:2a:0(a|b)
         Check_Condition (Header.Status, Header.Source.OUI_0 = 16#2a#, Forbidden_Address);
         Check_Condition (Header.Status, Header.Source.OUI_1 = 16#43#, Forbidden_Address);
@@ -136,10 +134,8 @@ is
 
         Check_Condition (Header.Status, Header.Sequence_Number > 0, Invalid_Sequence_Number);
         Check_Condition (Header.Status, Header.Sequence_Number > Sequence, Invalid_Sequence_Number);
-        Genode_Log.Log ("Sl3p raw length: " & Fw_Types.Image (Raw_Length));
         Check_Condition (Header.Status, Raw_Length <= 1488, Invalid_Size);
-        Check_Condition (Header.Status, Raw_Length <= Buffer'Length, Invalid_Size);
-        Genode_Log.Log ("Buffer length: " & Fw_Types.Image (Fw_Types.U32 (Buffer'Length)));
+        Check_Condition (Header.Status, Raw_Length + Sl3p_Offset <= Buffer'Length, Invalid_Size);
         Header.Length := (if Header.Status = Unchecked then Raw_Length else 0);
         Header.Status := (if Header.Status = Unchecked then Checked else Header.Status);
         return Header;
