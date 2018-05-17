@@ -1,0 +1,7 @@
+LICENSE   := AGPLv3
+VERSION   := git
+DOWNLOADS := jwx.git
+
+URL(jwx) := https://github.com/Componolit/jwx.git
+DIR(jwx) := jwx
+REV(jwx) := ff386a168fc68922e4626e537b488c1a95217f8f
