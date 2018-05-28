@@ -24,5 +24,5 @@ class Http_Filter::Connection : public Genode::Thread
 
     public:
 
-        Connection (Genode::Env &, int);
+        Connection (Genode::Env &, int, Genode::String<32>);
 };

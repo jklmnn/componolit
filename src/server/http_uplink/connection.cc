@@ -2,9 +2,9 @@
 #include <connection.h>
 #include <unistd.h>
 
-Http_Filter::Connection::Connection(Genode::Env &env, int socket) :
-    Genode::Thread(env, "test", 4096),
-    _terminal(env, "test"),
+Http_Filter::Connection::Connection(Genode::Env &env, int socket, Genode::String<32> label) :
+    Genode::Thread(env, label.string(), 4096),
+    _terminal(env, label.string()),
     _read_sigh(env.ep(), *this, &Http_Filter::Connection::handle_response),
     _socket(socket)
 {
