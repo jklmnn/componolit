@@ -2,6 +2,7 @@
 #include <libc/component.h>
 #include <timer_session/connection.h>
 
+#include <stdio.h>
 #include <unistd.h>
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -51,10 +52,21 @@ struct Http_Filter::Main
             conn = accept(sock, (struct sockaddr*)&client, &client_length);
             if (conn >= 0){
                 bool pool_not_full = false;
+                char lbl[32] = {};
+
+                snprintf(lbl, 31, "%u.%u.%u.%u:%d",
+                        (unsigned)ntohl(client.sin_addr.s_addr) >> 24,
+                        ((unsigned)ntohl(client.sin_addr.s_addr) >> 16) & 0xff,
+                        ((unsigned)ntohl(client.sin_addr.s_addr) >> 8) & 0xff,
+                        (unsigned)ntohl(client.sin_addr.s_addr) & 0xff,
+                        ntohs(client.sin_port));
+                Genode::String<32> label = Genode::String<32>(lbl);
+                Genode::log("Connection from: ", label);
+
                 for(unsigned i = 0; i < sizeof(Connection_Pool) / sizeof(Connection); i++){
                     if (!Connection_Pool[i].constructed()){
                         pool_not_full = true;
-                        Connection_Pool[i].construct(_env, conn);
+                        Connection_Pool[i].construct(_env, conn, label);
                         Connection_Pool[i]->start();
                     }
                 }
