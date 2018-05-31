@@ -3,9 +3,11 @@
 #include <root/component.h>
 #include <base/heap.h>
 #include <base/attached_ram_dataspace.h>
+#include <base/thread.h>
 #include <terminal_session/terminal_session.h>
 #include <timer_session/connection.h>
 
+#include <stdio.h>
 #include <unistd.h>
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -18,29 +20,57 @@ namespace Http_Filter
     struct Main;
     class Root;
     class Component;
+    class Async_Read;
 };
 
 long (*libc_write)(int, const void *, Genode::size_t) = write;
+long (*libc_read)(int, void *, Genode::size_t) = read;
+
+class Http_Filter::Async_Read : public Genode::Thread
+{
+    private:
+
+        int _socket;
+        Genode::Signal_context_capability _sig_cap;
+        Genode::Semaphore &_sem;
+
+        void entry()
+        {
+            Genode::log(__func__);
+            char c[128];
+            int received = 0;
+            while(received >= 0){
+                received = recv(_socket, &c, 128, MSG_PEEK);
+                Genode::log(received, ": ", Genode::Cstring(c));
+                if(received > 0){
+                    Genode::log("submit: ", _sig_cap);
+                    Genode::Signal_transmitter(_sig_cap).submit();
+                }
+                _sem.down();
+            }
+            Genode::error("Socket closed: ", received);
+        }
+
+    public:
+        Async_Read(Genode::Env &env, int sock, const char *label, Genode::Signal_context_capability sig,
+                Genode::Semaphore &sem) :
+            Genode::Thread(env, label, 4096),
+            _socket(sock),
+            _sig_cap(sig),
+            _sem(sem)
+    {}
+
+};
 
 class Http_Filter::Component : public Genode::Rpc_object<Terminal::Session, Component>
 {
     private:
 
+        Genode::Env &_env;
         Genode::Attached_ram_dataspace _io_buffer;
-        Genode::Signal_context_capability _sig_cap;
-        Genode::Signal_handler<Component> _read_sigh;
-        Timer::Connection _timer;
         int _socket;
-
-        void read_select(){
-            Genode::log(__func__);
-            char c;
-            int received = recv(_socket, &c, 1, MSG_PEEK);
-            if(received > 0){
-                Genode::Signal_transmitter(_sig_cap).submit();
-            }
-            _timer.trigger_once(0);
-        }
+        Genode::Constructible<Async_Read> _async_read;
+        Genode::Semaphore _read_sem;
 
     public:
 
@@ -48,11 +78,11 @@ class Http_Filter::Component : public Genode::Rpc_object<Terminal::Session, Comp
                 Genode::Ram_session &ram,
                 Genode::Region_map &rm,
                 Genode::size_t io_buffer_size) :
+            _env(env),
             _io_buffer(ram, rm, io_buffer_size),
-            _sig_cap(Genode::Signal_context_capability()),
-            _read_sigh(env.ep(), *this, &Component::read_select),
-            _timer(env),
-            _socket(-1)
+            _socket(-1),
+            _async_read(),
+            _read_sem(0)
         {
             struct sockaddr_in serv;
             struct hostent *server;
@@ -73,8 +103,6 @@ class Http_Filter::Component : public Genode::Rpc_object<Terminal::Session, Comp
                         Genode::error("Failed to connect");
                     }
 
-                    _timer.sigh(_read_sigh);
-                    _timer.trigger_once(0);
                     });
         }
 
@@ -91,14 +119,22 @@ class Http_Filter::Component : public Genode::Rpc_object<Terminal::Session, Comp
         Genode::size_t _read(Genode::size_t s)
         {
             Genode::log(__func__, " ", s);
-            return 0;
+            Genode::size_t const transfer = Genode::min(s, _io_buffer.size());
+            int const received = recv(_socket, _io_buffer.local_addr<void>(), transfer, MSG_DONTWAIT);
+            /*
+            if(_read_sem.cnt() == 0){
+                _read_sem.up();
+            }
+            */
+            Genode::log(__func__, " return");
+            return received;
         }
 
         Genode::size_t _write(Genode::size_t s)
         {
             Genode::log(__func__, " ", s);
             Genode::log(Genode::Cstring(_io_buffer.local_addr<char>()));
-            return libc_write((int)_socket, _io_buffer.local_addr<void>(), (Genode::size_t)s);
+            return libc_write(_socket, _io_buffer.local_addr<void>(), Genode::min(s, _io_buffer.size()));
         }
 
         Genode::Dataspace_capability _dataspace()
@@ -108,7 +144,14 @@ class Http_Filter::Component : public Genode::Rpc_object<Terminal::Session, Comp
 
         void read_avail_sigh(Genode::Signal_context_capability cap) override
         {
-            _sig_cap = cap;
+            Genode::log(__func__, " ", cap);
+            char label[20] = {};
+            snprintf(label, 20, "http_uplink_%d", _socket);
+            if(_async_read.constructed()){
+                _async_read.destruct();
+            }
+            _async_read.construct(_env, _socket, label, cap, _read_sem);
+            _async_read->start();
         }
 
         void size_changed_sigh(Genode::Signal_context_capability) override
@@ -121,11 +164,13 @@ class Http_Filter::Component : public Genode::Rpc_object<Terminal::Session, Comp
 
         Genode::size_t read(void *, Genode::size_t) override
         {
+            Genode::warning(__func__);
             return 0;
         }
 
         Genode::size_t write(void const *, Genode::size_t) override
         {
+            Genode::warning(__func__);
             return 0;
         }
 
