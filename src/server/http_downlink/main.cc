@@ -31,24 +31,23 @@ class Http_Filter::Async_Read : public Genode::Thread
     private:
 
         int _socket;
+        bool _closed;
         Genode::Signal_context_capability _sig_cap;
         Genode::Semaphore &_sem;
 
         void entry()
         {
-            Genode::log(__func__);
-            char c[128];
-            int received = 0;
-            while(received >= 0){
-                received = recv(_socket, &c, 128, MSG_PEEK);
-                Genode::log(received, ": ", Genode::Cstring(c));
-                if(received > 0){
-                    Genode::log("submit: ", _sig_cap);
-                    Genode::Signal_transmitter(_sig_cap).submit();
-                }
+            Genode::log(__func__, " read thread ", _socket);
+            char dummy;
+            while(!_closed){
+                recv(_socket, &dummy, 0, MSG_PEEK);
+                Genode::log("submit: ", _sig_cap);
+                Genode::Signal_transmitter(_sig_cap).submit();
+                Genode::log("sem down");
                 _sem.down();
+                Genode::log("sem up");
             }
-            Genode::error("Socket closed: ", received);
+            Genode::log("socket closed");
         }
 
     public:
@@ -56,9 +55,16 @@ class Http_Filter::Async_Read : public Genode::Thread
                 Genode::Semaphore &sem) :
             Genode::Thread(env, label, 4096),
             _socket(sock),
+            _closed(false),
             _sig_cap(sig),
             _sem(sem)
     {}
+
+        void close()
+        {
+            _closed = true;
+            _sem.up();
+        }
 
 };
 
@@ -120,21 +126,33 @@ class Http_Filter::Component : public Genode::Rpc_object<Terminal::Session, Comp
         {
             Genode::log(__func__, " ", s);
             Genode::size_t const transfer = Genode::min(s, _io_buffer.size());
-            int const received = recv(_socket, _io_buffer.local_addr<void>(), transfer, MSG_DONTWAIT);
-            /*
-            if(_read_sem.cnt() == 0){
+            int const received = libc_read(_socket, _io_buffer.local_addr<void>(), transfer);
+            if (received < 1){
+                if(_async_read.constructed()){
+                    Genode::log("destructing");
+                    _async_read->close();
+                    _async_read->join();
+                    _async_read.destruct();
+                }
+                close(_socket);
+            }
+            if (_read_sem.cnt() < 1){
                 _read_sem.up();
             }
-            */
-            Genode::log(__func__, " return");
-            return received;
+            Genode::log(__func__, " ", received, " return");
+            return Genode::max(received, 0);
         }
 
         Genode::size_t _write(Genode::size_t s)
         {
-            Genode::log(__func__, " ", s);
+            Genode::log(__func__, " ", s, " ", _socket);
             Genode::log(Genode::Cstring(_io_buffer.local_addr<char>()));
-            return libc_write(_socket, _io_buffer.local_addr<void>(), Genode::min(s, _io_buffer.size()));
+            int const sent = libc_write(_socket, _io_buffer.local_addr<void>(), Genode::min(s, _io_buffer.size()));
+            if(sent < 1){
+                close(_socket);
+                Genode::log("socket closed (send)");
+            }
+            return Genode::max(sent, 0);
         }
 
         Genode::Dataspace_capability _dataspace()
