@@ -27,7 +27,9 @@ class Http_Filter::Component : public Genode::Rpc_object<Terminal::Session, Comp
         Component(Genode::Env &env,
                 Genode::Ram_session &ram,
                 Genode::Region_map &rm,
-                Genode::size_t io_buffer_size);
+                Genode::size_t io_buffer_size,
+                const char *,
+                int);
 
         Terminal::Session::Size size() override;
 
@@ -58,6 +60,8 @@ class Http_Filter::Root : public Genode::Root_component<Component>
         Genode::Env &_env;
         Genode::Ram_session &_ram;
         Genode::Region_map &_rm;
+        Genode::String<16> _address;
+        int _port;
 
     protected:
 
@@ -69,5 +73,7 @@ class Http_Filter::Root : public Genode::Root_component<Component>
                 Genode::Entrypoint &ep,
                 Genode::Allocator &md_alloc,
                 Genode::Ram_session &ram,
-                Genode::Region_map &rm);
+                Genode::Region_map &rm,
+                Genode::String<16> address,
+                int port);
 };

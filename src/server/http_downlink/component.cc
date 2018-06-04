@@ -17,7 +17,9 @@ long (*libc_read)(int, void *, Genode::size_t) = read;
 Http_Filter::Component::Component(Genode::Env &env,
         Genode::Ram_session &ram,
         Genode::Region_map &rm,
-        Genode::size_t io_buffer_size) :
+        Genode::size_t io_buffer_size,
+        const char *address,
+        int port) :
     _env(env),
     _io_buffer(ram, rm, io_buffer_size),
     _socket(-1),
@@ -34,10 +36,10 @@ Http_Filter::Component::Component(Genode::Env &env,
             Genode::error("Failed to open socket");
             }
 
-            server = gethostbyname("10.0.2.55");
+            server = gethostbyname(address);
             serv.sin_family = AF_INET;
             Genode::memcpy(&(serv.sin_addr.s_addr), server->h_addr, server->h_length);
-            serv.sin_port = htons(80);
+            serv.sin_port = htons(port);
 
             if(connect(_socket, (struct sockaddr *)&serv, sizeof(serv)) < 0){
             Genode::error("Failed to connect");
@@ -123,13 +125,15 @@ Http_Filter::Root::Root(Genode::Env &env,
         Genode::Entrypoint &ep,
         Genode::Allocator &md_alloc,
         Genode::Ram_session &ram,
-        Genode::Region_map &rm) :
+        Genode::Region_map &rm,
+        Genode::String<16> address,
+        int port) :
     Genode::Root_component<Component>(&ep.rpc_ep(), &md_alloc),
-    _env(env), _ram(ram), _rm(rm)
+    _env(env), _ram(ram), _rm(rm), _address(address), _port(port)
 { }
 
 Http_Filter::Component *Http_Filter::Root::_create_session(const char *)
 {
     Genode::size_t const io_buffer_size = 4096;
-    return new (md_alloc()) Component(_env, _ram, _rm, io_buffer_size);
+    return new (md_alloc()) Component(_env, _ram, _rm, io_buffer_size, _address.string(), _port);
 }
