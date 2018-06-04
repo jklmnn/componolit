@@ -25,11 +25,11 @@ struct Http_Filter::Main
     {
         bool pool_not_full = false;
         for(unsigned i = 0; i < sizeof(_connection_pool) / sizeof(Connection); i++){
-            Genode::log(i);
             if (!_connection_pool[i].constructed()){
                 pool_not_full = true;
                 _connection_pool[i].construct(_env, _connection, _label, _close_sigh);
                 _connection_pool[i]->start();
+                break;
             }
         }
         if(!pool_not_full){
