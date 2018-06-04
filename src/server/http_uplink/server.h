@@ -7,7 +7,7 @@
 namespace Http_Filter {
     class Server;
     enum {
-        CONNECTION_COUNT = 1
+        CONNECTION_COUNT = 2
     };
 };
 
