@@ -6,13 +6,26 @@
 namespace Http_Filter
 {
     class Connection;
+    class Connection_loop;
     struct Connection_info;
     enum {
         BUFSIZE = 1024
     };
 };
 
-class Http_Filter::Connection : public Genode::Thread
+class Http_Filter::Connection_loop : public Genode::Thread
+{
+    private:
+        int _socket;
+        Terminal::Connection &_terminal;
+
+        void entry() override;
+
+    public:
+        Connection_loop (Genode::Env &, int, Genode::String<32>, Terminal::Connection &);
+};
+
+class Http_Filter::Connection
 {
     private:
 
@@ -20,11 +33,12 @@ class Http_Filter::Connection : public Genode::Thread
         Terminal::Connection _terminal;
         Genode::Signal_handler<Connection> _read_sigh;
         int _socket;
+        Connection_loop _loop;
 
-        void entry() override;
+        void handle_response();
 
     public:
 
-        void handle_response();
         Connection (Genode::Env &, int, Genode::String<32>);
+        void start();
 };
