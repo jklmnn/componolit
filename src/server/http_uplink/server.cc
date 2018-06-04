@@ -56,19 +56,6 @@ void Http_Filter::Server::entry()
             Genode::log("Connection from: ", _label);
 
             Genode::Signal_transmitter(_connection_sigh).submit();
-/*
-            for(unsigned i = 0; i < sizeof(_connection_pool) / sizeof(Connection); i++){
-                if (!_connection_pool[i].constructed()){
-                    pool_not_full = true;
-                    _connection_pool[i].construct(_env, conn, label);
-                    _connection_pool[i]->start();
-                }
-            }
-            if(!pool_not_full){
-                Genode::warning("Connection pool is full, closing connection");
-                close(conn);
-            }
-*/
         }else{
             Genode::error("Connection failed");
         }
