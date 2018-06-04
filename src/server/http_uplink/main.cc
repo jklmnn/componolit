@@ -24,13 +24,11 @@ struct Http_Filter::Main
     void handle_connection()
     {
         bool pool_not_full = false;
-        Genode::log(__func__);
         for(unsigned i = 0; i < sizeof(_connection_pool) / sizeof(Connection); i++){
             Genode::log(i);
             if (!_connection_pool[i].constructed()){
                 pool_not_full = true;
                 _connection_pool[i].construct(_env, _connection, _label, _close_sigh);
-                Genode::log("connection constructed");
                 _connection_pool[i]->start();
             }
         }
@@ -41,7 +39,6 @@ struct Http_Filter::Main
 
     void close_connection()
     {
-        Genode::log(__func__);
         for(unsigned i = 0; i < sizeof(_connection_pool) / sizeof(Connection); i++){
             if(_connection_pool[i].constructed() && _connection_pool[i]->closed()){
                 _connection_pool[i]->join();
