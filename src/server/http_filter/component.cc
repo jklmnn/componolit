@@ -1,12 +1,17 @@
 
 #include <component.h>
 
-Http_Filter::Component::Component(Genode::Env &,
+Http_Filter::Component::Component(Genode::Env &env,
         Genode::Ram_session &ram,
         Genode::Region_map &rm,
         Genode::size_t io_buffer_size) :
-    _io_buffer(ram, rm, io_buffer_size)
-{ }
+    _io_buffer(ram, rm, io_buffer_size),
+    _terminal(env, "term")
+{
+    Genode::log("_io_buffer ", sizeof(_io_buffer));
+    Genode::log("_terminal ", sizeof(_terminal));
+    Genode::log("*this ", sizeof(*this));
+}
 
 Terminal::Session::Size Http_Filter::Component::size()
 {
@@ -18,6 +23,7 @@ bool Http_Filter::Component::avail()
     return false;
 }
 
+/*
 Genode::size_t Http_Filter::Component::_read(Genode::size_t)
 {
     Genode::warning(__func__);
@@ -29,6 +35,7 @@ Genode::size_t Http_Filter::Component::_write(Genode::size_t)
     Genode::warning(__func__);
     return 0;
 }
+*/
 
 Genode::Dataspace_capability Http_Filter::Component::_dataspace()
 {
