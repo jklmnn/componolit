@@ -1,6 +1,7 @@
 
 #include <root/component.h>
 #include <terminal_session/terminal_session.h>
+#include <terminal_session/connection.h>
 #include <base/attached_ram_dataspace.h>
 
 namespace Http_Filter
@@ -17,6 +18,7 @@ class Http_Filter::Component : public Genode::Rpc_object<Terminal::Session, Comp
     private:
 
         Genode::Attached_ram_dataspace _io_buffer;
+        Terminal::Connection _terminal;
 
     public:
 
