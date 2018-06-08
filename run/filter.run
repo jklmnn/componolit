@@ -1,0 +1,69 @@
+build "core init test/log server/terminal_log server/log_terminal server/http_filter"
+
+create_boot_directory
+
+install_config {
+<config>
+    <parent-provides>
+        <service name="LOG"/>
+        <service name="PD"/>
+        <service name="CPU"/>
+        <service name="ROM"/>
+    </parent-provides>
+    <default-route>
+        <any-service> <parent/> </any-service>
+    </default-route>
+    <default caps="200"/>
+
+    <start name="test-log">
+        <resource name="RAM" quantum="10M"/>
+        <route>
+            <service name="LOG">
+                <child name="terminal_log"/>
+            </service>
+            <any-service><parent/><any-child/></any-service>
+        </route>
+    </start>
+
+    <start name="terminal_log">
+        <resource name="RAM" quantum="8M"/>
+        <provides>
+            <service name="LOG"/>
+        </provides>
+        <route>
+            <service name="Terminal">
+                <child name="http_filter"/>
+            </service>
+            <any-service><parent/><any-child/></any-service>
+        </route>
+    </start>
+
+    <start name="log_terminal">
+        <resource name="RAM" quantum="8M"/>
+        <provides>
+            <service name="Terminal"/>
+        </provides>
+    </start>
+
+    <start name="http_filter">
+        <resource name="RAM" quantum="8M"/>
+        <provides>
+            <service name="Terminal"/>
+        </provides>
+        <route>
+            <service name="Terminal">
+                <child name="log_terminal"/>
+            </service>
+            <any-service><parent/><any-child/></any-service>
+        </route>
+    </start>
+
+</config>
+}
+
+build_boot_image "core ld.lib.so ada.lib.so init test-log terminal_log log_terminal http_filter"
+
+append qemu_args "-nographic "
+append xen_args  { sdl="0" }
+
+run_genode_until "Test done.*\n" 20
