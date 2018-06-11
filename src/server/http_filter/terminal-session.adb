@@ -31,10 +31,12 @@ package body Terminal.Session is
                   Size : Integer
                  ) return Integer
    is
-      pragma Unreferenced (This);
+      Buffer : String (1 .. This.Io_Buffer.Size)
+        with
+          Address => This.Io_Buffer.Local_Address;
    begin
-      Debug_Ptr(System.Null_Address, "Read");
-      return Size;
+      Debug_Int (Long_Integer (Size), Buffer);
+      return This.Cpp_Read (Size, This.Io_Buffer.Local_Address);
    end Read;
 
    -----------
@@ -50,9 +52,9 @@ package body Terminal.Session is
         with
           Address => This.Io_Buffer.Local_Address;
    begin
-      Debug_Ptr (This.Io_Buffer.Local_Address, "Write");
-      Debug_Int (Long_Integer (This.Io_Buffer.Size), Buffer);
-      return This.Terminal.Write(This.Io_Buffer.Local_Address, Size);
+      --  Debug_Ptr (This.Io_Buffer.Local_Address, "Write");
+      Debug_Int (Long_Integer (Size), Buffer);
+      return This.Cpp_Write (Size, This.Io_Buffer.Local_Address);
    end Write;
 
 end Terminal.Session;

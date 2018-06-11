@@ -31,6 +31,8 @@ class Http_Filter::Component : public Genode::Rpc_object<Terminal::Session, Comp
         bool avail() override;
         Genode::size_t _read(Genode::size_t);
         Genode::size_t _write(Genode::size_t);
+        Genode::size_t cpp_write(Genode::size_t, void *);
+        Genode::size_t cpp_read(Genode::size_t, void *);
         Genode::Dataspace_capability _dataspace();
         void read_avail_sigh(Genode::Signal_context_capability) override;
         void size_changed_sigh(Genode::Signal_context_capability) override;
