@@ -4,7 +4,7 @@ with System;
 
 package Terminal.Session is
 
-   type Component is limited record
+   type Component is tagged limited record
       Io_Buffer : aliased Base.Attached_Ram_Dataspace.Attached_Ram_Dataspace;
       Terminal  : aliased Connection.Connection;
    end record
@@ -42,6 +42,26 @@ package Terminal.Session is
        Export,
        Convention => CPP,
        External_Name => "_ZN11Http_Filter9Component6_writeEm";
+
+   function Cpp_Write (
+                       This : access Component;
+                       Size : Integer;
+                       Buffer : System.Address
+                      ) return Integer
+     with
+       Import,
+       Convention => CPP,
+       External_Name => "_ZN11Http_Filter9Component9cpp_writeEmPv";
+
+   function Cpp_Read (
+                      This : access Component;
+                      Size : Integer;
+                      Buffer : System.Address
+                     ) return Integer
+     with
+       Import,
+       Convention => CPP,
+       External_Name => "_ZN11Http_Filter9Component8cpp_readEmPv";
 
 private
 

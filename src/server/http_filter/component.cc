@@ -31,21 +31,34 @@ Genode::size_t Http_Filter::Component::_read(Genode::size_t)
     return 0;
 }
 
-Genode::size_t Http_Filter::Component::_write(Genode::size_t)
+Genode::size_t Http_Filter::Component::_write(Genode::size_t size)
 {
     Genode::warning(__func__);
-    return 0;
+    return _terminal.write(_io_buffer.local_addr<void>(), size);
 }
 */
+
+Genode::size_t Http_Filter::Component::cpp_write(Genode::size_t size, void *buffer)
+{
+    //Genode::log(__func__);
+    return _terminal.write(buffer, size);
+}
+
+Genode::size_t Http_Filter::Component::cpp_read(Genode::size_t size, void *buffer)
+{
+    //Genode::log(__func__);
+    return _terminal.read(buffer, size);
+}
 
 Genode::Dataspace_capability Http_Filter::Component::_dataspace()
 {
     return _io_buffer.cap();
 }
 
-void Http_Filter::Component::read_avail_sigh(Genode::Signal_context_capability)
+void Http_Filter::Component::read_avail_sigh(Genode::Signal_context_capability cap)
 {
     Genode::warning(__func__);
+    _terminal.read_avail_sigh(cap);
 }
 
 void Http_Filter::Component::size_changed_sigh(Genode::Signal_context_capability)
