@@ -2,13 +2,20 @@
 #include <base/component.h>
 #include <base/heap.h>
 
+#include <base/ram_allocator.h>
+
 #include <component.h>
 
 extern "C" {
 
-    void debug(char *msg)
+    void debug(void *ptr, char *msg)
     {
-        Genode::log(Genode::Cstring(msg));
+        Genode::log(ptr, " ", Genode::Cstring(msg));
+    }
+
+    void __gnat_rcheck_CE_Access_Check()
+    {
+        Genode::error("Constraint Error: Access check failed");
     }
 
 }
