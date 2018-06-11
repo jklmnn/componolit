@@ -4,4 +4,4 @@ DOWNLOADS := jwx.git
 
 URL(jwx) := https://github.com/Componolit/jwx.git
 DIR(jwx) := jwx
-REV(jwx) := da17921b234e07780835fefb10b6933b05c9d976
+REV(jwx) := 38617123889a2117b367986fb3c507069dfa08cd
