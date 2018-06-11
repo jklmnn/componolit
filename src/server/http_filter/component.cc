@@ -11,6 +11,7 @@ Http_Filter::Component::Component(Genode::Env &env,
     Genode::log("_io_buffer ", sizeof(_io_buffer));
     Genode::log("_terminal ", sizeof(_terminal));
     Genode::log("*this ", sizeof(*this));
+    Genode::log(_io_buffer.local_addr<void>());
 }
 
 Terminal::Session::Size Http_Filter::Component::size()
