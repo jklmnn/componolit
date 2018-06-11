@@ -1,0 +1,7 @@
+LICENSE   := AGPLv3
+VERSION   := git
+DOWNLOADS := libsparkcrypto.git
+
+URL(libsparkcrypto) := https://github.com/Componolit/libsparkcrypto.git
+DIR(libsparkcrypto) := libsparkcrypto
+REV(libsparkcrypto) := a0c052bbb248fb5567342d2d77de6f07162c0eab
