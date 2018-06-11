@@ -1,0 +1,55 @@
+body {
+    font-family: Sans;
+}
+
+div {
+    float: left;
+}
+
+button {
+    font-size: 14pt;
+    background: #ffffff;
+    width: 90px;
+    border: 0px;
+    padding: 10px;
+}
+
+.container {
+    margin: 5px;
+    padding: 20px;
+    background: #eeeeee;
+}
+
+#info {
+    width: 200px;
+    height: 600px;
+}
+
+#chart {
+    width: 600px;
+    height: 600px;
+}
+
+#state {
+    width: 185px;
+    height: 50px;
+    line-height: 50px;
+    font-size: 14pt;
+    background: white;
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+#wind-gauge {
+    float: left;
+    margin-left: 20px;
+}
+
+#power-gauge {
+    float: right;
+    margin-right: 20px;
+}
+
+#line-chart {
+    margin-top: 40px;
+}
