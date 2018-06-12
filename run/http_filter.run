@@ -8,9 +8,10 @@ set build_components {
 	server/nic_bridge
 	app/lighttpd
 	test/lwip/http_clnt
-        server/http_uplink
-        server/http_downlink
-        server/log_terminal
+	server/http_uplink
+	server/http_downlink
+	server/log_terminal
+	server/nic_loopback
 }
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
@@ -39,33 +40,18 @@ append config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-        <default caps="200"/>
+	<default caps="200"/>
 }
 
 append_platform_drv_config
 
 append config {
+
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
-	<start name="nic_drv">
-		<binary name="} [nic_drv_binary] {"/>
-		<resource name="RAM" quantum="4M"/>
-		<provides><service name="Nic"/></provides>
-	</start>
-	<start name="nic_bridge">
-		<resource name="RAM" quantum="24M"/>
-		<provides><service name="Nic"/></provides>
-		<config>
-			<policy label_prefix="lighttpd" ip_addr="10.0.2.55"/>
-                        <policy label_prefix="http_uplink" ip_addr="10.0.2.110"/>
-		</config>
-		<route>
-			<service name="Nic"> <child name="nic_drv"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
+
 	<start name="lighttpd">
 		<resource name="RAM" quantum="128M" />
 		<config>
@@ -77,6 +63,7 @@ append config {
 				<dir name="dev">
 					<log/>
 					<null/>
+               <inline name="rtc">2000-01-01 00:00</inline>
 				</dir>
 				<dir name="etc">
 					<dir name="lighttpd">
@@ -97,21 +84,11 @@ mimetype.assign      = (
 					</dir>
 				</dir>
 				<dir name="website">
-					<inline name="index.html">
-<html>
-	<head>
-		<title>Hello</title>
-	</head>
-	<body>
-		<p>Hello Genode!</p>
-		<b>I am bold ;-)</b>
-	</body>
-</html>
-					</inline>
+					<rom/>
 				</dir>
 			</vfs>
-			<libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log"
-			      ip_addr="10.0.2.55" netmask="255.255.255.0" gateway="10.0.2.1"/>
+			<libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"
+				ip_addr="10.0.2.55" netmask="255.255.255.0" gateway="10.0.2.1"/>
 		</config>
 		<route>
 			<service name="Nic"> <child name="nic_bridge"/> </service>
@@ -119,59 +96,69 @@ mimetype.assign      = (
 		</route>
 	</start>
 
-        <start name="log_terminal">
-            <resource name="RAM" quantum="8M"/>
-            <provides>
-                <service name="Terminal"/>
-            </provides>
-        </start>
+	<start name="nic_loopback">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Nic"/></provides>
+	</start>
 
-        <start name="http_downlink">
-            <resource name="RAM" quantum="16M"/>
-            <provides>
-                <service name="Terminal"/>
-            </provides>
-            <route>
-                <service name="Nic"><child name="nic_bridge"/></service>
-                <any-service><parent/><any-child/></any-service>
-            </route>
-            <config server_ip="10.0.2.55" server_port="80"/>
-        </start>
-
-        <start name="http_uplink">
-            <resource name="RAM" quantum="12M"/>
-            <route>
-                <service name="Nic"><child name="nic_bridge"/></service>
-                <service name="Terminal"><child name="http_downlink"/></service>
-                <any-service><parent/><any-child/></any-service>
-            </route>
-        </start>
-
-	<start name="test-http_clnt">
-		<resource name="RAM" quantum="32M"/>
+	<start name="nic_bridge">
+		<resource name="RAM" quantum="24M"/>
+		<provides><service name="Nic"/></provides>
+		<config>
+			<policy label_prefix="lighttpd" ip_addr="10.0.2.55"/>
+			<policy label_prefix="http_downlink" ip_addr="10.0.2.110"/>
+		</config>
 		<route>
-			<service name="Nic"> <child name="nic_bridge"/> </service>
+			<service name="Nic"> <child name="nic_loopback"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
-		<config server_ip="10.0.2.16" server_port="80">
-			<vfs> <dir name="dev"> <log/> </dir> </vfs>
-			<libc stdout="/dev/log" stderr="/dev/log"/>
-		</config>
 	</start>
-        <!--
-	<start name="test-http_clnt2">
-                <binary name="test-http_clnt"/>
-		<resource name="RAM" quantum="32M"/>
+
+	<start name="http_downlink">
+		<resource name="RAM" quantum="16M"/>
+		<provides>
+			<service name="Terminal"/>
+		</provides>
 		<route>
-			<service name="Nic"> <child name="nic_bridge"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
+			<service name="Nic"><child name="nic_bridge"/></service>
+			<any-service><parent/><any-child/></any-service>
 		</route>
-		<config server_ip="10.0.2.16" server_port="80">
-			<vfs> <dir name="dev"> <log/> </dir> </vfs>
-			<libc stdout="/dev/log" stderr="/dev/log"/>
+		<config server_ip="10.0.2.55" server_port="80"/>
+	</start>
+
+	<start name="http_uplink">
+		<resource name="RAM" quantum="12M"/>
+		<route>
+			<service name="Nic"><child name="nic_drv"/></service>
+			<service name="Terminal"><child name="http_downlink"/></service>
+			<any-service><parent/><any-child/></any-service>
+		</route>
+
+		<config>
+			<vfs>
+				<dir name="dev">
+					<log/>
+					<null/>
+					<inline name="rtc">2000-01-01 00:00</inline>
+				</dir>
+			</vfs>
+			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"/>
 		</config>
 	</start>
-        -->
+
+	<start name="nic_drv">
+		<binary name="} [nic_drv_binary] {"/>
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Nic"/></provides>
+	</start>
+
+	<start name="log_terminal">
+		<resource name="RAM" quantum="8M"/>
+		<provides>
+			<service name="Terminal"/>
+		</provides>
+	</start>
+
 </config>}
 
 install_config $config
@@ -185,6 +172,7 @@ append boot_modules {
 	core init
 	timer } [nic_drv_binary] {
 	nic_bridge
+	nic_loopback
 	ld.lib.so
 	libc.lib.so
 	posix.lib.so
@@ -193,11 +181,14 @@ append boot_modules {
 	libm.lib.so
 	zlib.lib.so
 	lighttpd
-        http_uplink
-        http_downlink
-        log_terminal
+	http_uplink
+	http_downlink
+	log_terminal
+	index.html
 }
 
+# Copy website
+exec cp ${genode_dir}/repos/componolit/demo/wind_turbine_hmi/demo.html bin/index.html
 
 # platform-specific modules
 lappend_if [have_spec linux] boot_modules fb_sdl
@@ -210,7 +201,7 @@ build_boot_image $boot_modules
 append_if [have_spec x86]     qemu_args " -net nic,model=e1000 "
 append_if [have_spec lan9118] qemu_args " -net nic,model=lan9118 "
 
-append qemu_args " -net user "
+append qemu_args " -net user -redir tcp:5555::80 "
 append qemu_args " -nographic -serial mon:stdio "
 
 run_genode_until forever
