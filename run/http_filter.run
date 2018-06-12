@@ -88,7 +88,7 @@ mimetype.assign      = (
 				</dir>
 			</vfs>
 			<libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"
-				ip_addr="10.0.2.55" netmask="255.255.255.0" gateway="10.0.2.1"/>
+				ip_addr="10.0.2.55" netmask="255.255.255.0" gateway="0.0.0.0"/>
 		</config>
 		<route>
 			<service name="Nic"> <child name="nic_bridge"/> </service>
@@ -105,8 +105,8 @@ mimetype.assign      = (
 		<resource name="RAM" quantum="24M"/>
 		<provides><service name="Nic"/></provides>
 		<config>
-			<policy label_prefix="lighttpd" ip_addr="10.0.2.55"/>
-			<policy label_prefix="http_downlink" ip_addr="10.0.2.110"/>
+			<policy label_prefix="lighttpd" ip_addr="10.0.3.100"/>
+			<policy label_prefix="http_downlink" ip_addr="10.0.3.101"/>
 		</config>
 		<route>
 			<service name="Nic"> <child name="nic_loopback"/> </service>
@@ -123,7 +123,17 @@ mimetype.assign      = (
 			<service name="Nic"><child name="nic_bridge"/></service>
 			<any-service><parent/><any-child/></any-service>
 		</route>
-		<config server_ip="10.0.2.55" server_port="80"/>
+		<config server_ip="10.0.3.100" server_port="80">
+			<vfs>
+				<dir name="dev">
+					<log/>
+					<null/>
+					<inline name="rtc">2000-01-01 00:00</inline>
+				</dir>
+			</vfs>
+			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"
+				ip_addr="10.0.3.100" netmask="255.255.255.0" gateway="0.0.0.0"/>
+		</config>
 	</start>
 
 	<start name="http_uplink">
