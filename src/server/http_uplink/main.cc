@@ -61,6 +61,7 @@ struct Http_Filter::Main
         Libc::with_libc([&](){
                 _server.start();
                 });
+        Genode::log("uplink ready");
     }
 };
 

@@ -83,4 +83,5 @@ void Http_Filter::Connection_loop::entry()
             }
         }
     }
+    Genode::Signal_transmitter(_csigh).submit();
 }

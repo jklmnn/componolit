@@ -48,6 +48,11 @@ Http_Filter::Component::Component(Genode::Env &env,
             });
 }
 
+Http_Filter::Component::~Component()
+{
+    close(_socket);
+}
+
 Terminal::Session::Size Http_Filter::Component::size()
 {
     return Terminal::Session::Size(0, 0);

@@ -31,6 +31,8 @@ class Http_Filter::Component : public Genode::Rpc_object<Terminal::Session, Comp
                 const char *,
                 int);
 
+        ~Component();
+
         Terminal::Session::Size size() override;
 
         bool avail() override;
