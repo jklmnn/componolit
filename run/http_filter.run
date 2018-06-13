@@ -88,7 +88,7 @@ mimetype.assign      = (
 				</dir>
 			</vfs>
 			<libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"
-				ip_addr="10.0.2.55" netmask="255.255.255.0" gateway="0.0.0.0"/>
+				ip_addr="10.0.3.100" netmask="255.255.255.0" gateway="0.0.0.0"/>
 		</config>
 		<route>
 			<service name="Nic"> <child name="nic_bridge"/> </service>
@@ -132,7 +132,7 @@ mimetype.assign      = (
 				</dir>
 			</vfs>
 			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"
-				ip_addr="10.0.3.100" netmask="255.255.255.0" gateway="0.0.0.0"/>
+				ip_addr="10.0.3.101" netmask="255.255.255.0" gateway="0.0.0.0"/>
 		</config>
 	</start>
 
