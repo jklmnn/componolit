@@ -9,9 +9,11 @@ set build_components {
 	app/lighttpd
 	test/lwip/http_clnt
 	server/http_uplink
-	server/http_downlink
+        server/http_downlink
+        server/http_filter
 	server/log_terminal
 	server/nic_loopback
+        server/nic_dump
 }
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
@@ -80,6 +82,7 @@ mimetype.assign      = (
   ".html"         =>      "text/html",
   ".htm"          =>      "text/html"
 )
+#debug.log-request-handling = "enable"
 						</inline>
 					</dir>
 				</dir>
@@ -114,13 +117,27 @@ mimetype.assign      = (
 		</route>
 	</start>
 
+        <start name="nic_dump">
+            <resource name="RAM" quantum="8M"/>
+            <provides>
+                <service name="Nic"/>
+            </provides>
+            <config uplink="nic_bridge"
+                downlink="http_downlink"
+            />
+            <route>
+                <service name="Nic"><child name="nic_bridge"/></service>
+                <any-service><parent/><any-child/></any-service>
+            </route>
+        </start>
+
 	<start name="http_downlink">
 		<resource name="RAM" quantum="16M"/>
 		<provides>
 			<service name="Terminal"/>
 		</provides>
 		<route>
-			<service name="Nic"><child name="nic_bridge"/></service>
+			<service name="Nic"><child name="nic_dump"/></service>
 			<any-service><parent/><any-child/></any-service>
 		</route>
 		<config server_ip="10.0.3.100" server_port="80">
@@ -134,13 +151,24 @@ mimetype.assign      = (
 			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"
 				ip_addr="10.0.3.101" netmask="255.255.255.0" gateway="0.0.0.0"/>
 		</config>
-	</start>
+        </start>
+
+        <start name="http_filter">
+            <resource name="RAM" quantum="8M"/>
+            <provides>
+                <service name="Terminal"/>
+            </provides>
+            <route>
+                <service name="Terminal"><child name="http_downlink"/></service>
+                <any-service><parent/><any-child/></any-service>
+            </route>
+        </start>
 
 	<start name="http_uplink">
 		<resource name="RAM" quantum="12M"/>
 		<route>
 			<service name="Nic"><child name="nic_drv"/></service>
-			<service name="Terminal"><child name="http_downlink"/></service>
+			<service name="Terminal"><child name="http_filter"/></service>
 			<any-service><parent/><any-child/></any-service>
 		</route>
 
@@ -183,7 +211,8 @@ append boot_modules {
 	timer } [nic_drv_binary] {
 	nic_bridge
 	nic_loopback
-	ld.lib.so
+        ld.lib.so
+        ada.lib.so
 	libc.lib.so
 	posix.lib.so
 	lwip.lib.so
@@ -192,9 +221,11 @@ append boot_modules {
 	zlib.lib.so
 	lighttpd
 	http_uplink
-	http_downlink
+        http_downlink
+        http_filter
 	log_terminal
-	index.html
+        index.html
+        nic_dump
 }
 
 # Copy website
