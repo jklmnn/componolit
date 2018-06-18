@@ -31,6 +31,7 @@ Http_Filter::Component::Component(Genode::Env &env,
 
     Libc::with_libc([&] () {
             _socket = socket(AF_INET, SOCK_STREAM, 0);
+            Genode::log("socket ", _socket);
 
             if(_socket < 0){
             Genode::error("Failed to open socket");
@@ -41,6 +42,7 @@ Http_Filter::Component::Component(Genode::Env &env,
             Genode::memcpy(&(serv.sin_addr.s_addr), server->h_addr, server->h_length);
             serv.sin_port = htons(port);
 
+            Genode::log("connect ", _socket);
             if(connect(_socket, (struct sockaddr *)&serv, sizeof(serv)) < 0){
             Genode::error("Failed to connect");
             }
@@ -50,7 +52,14 @@ Http_Filter::Component::Component(Genode::Env &env,
 
 Http_Filter::Component::~Component()
 {
+    Genode::log("~close ", _socket);
     close(_socket);
+    if(_async_read.constructed()){
+        _async_read->close();
+        _async_read->cancel_blocking();
+        _async_read->join();
+        _async_read.destruct();
+    }
 }
 
 Terminal::Session::Size Http_Filter::Component::size()
@@ -66,27 +75,37 @@ bool Http_Filter::Component::avail()
 Genode::size_t Http_Filter::Component::_read(Genode::size_t s)
 {
     Genode::size_t const transfer = Genode::min(s, _io_buffer.size());
-    int const received = libc_read(_socket, _io_buffer.local_addr<void>(), transfer);
-    if (received < 1){
-        if(_async_read.constructed()){
-            _async_read->close();
-            _async_read->join();
-            _async_read.destruct();
+    int received;
+    Genode::log("read ", _socket);
+    Libc::with_libc([&] () {
+        received = libc_read(_socket, _io_buffer.local_addr<void>(), transfer);
+        if (received < 1){
+            if(_async_read.constructed()){
+                _async_read->close();
+                _async_read->join();
+                _async_read.destruct();
+            }
+            Genode::log("close ", _socket);
+            close(_socket);
         }
-        close(_socket);
-    }
-    if (_read_sem.cnt() < 1){
-        _read_sem.up();
-    }
+        if (_read_sem.cnt() < 1){
+            _read_sem.up();
+        }
+    });
     return Genode::max(received, 0);
 }
 
 Genode::size_t Http_Filter::Component::_write(Genode::size_t s)
 {
-    int const sent = libc_write(_socket, _io_buffer.local_addr<void>(), Genode::min(s, _io_buffer.size()));
-    if(sent < 1){
-        close(_socket);
-    }
+    Genode::log("write ", _socket);
+    int sent;
+    Libc::with_libc([&] () {
+        sent = libc_write(_socket, _io_buffer.local_addr<void>(), Genode::min(s, _io_buffer.size()));
+        if(sent < 1){
+            Genode::log("close ", _socket);
+            close(_socket);
+        }
+    });
     return Genode::max(sent, 0);
 }
 

@@ -26,6 +26,7 @@ class Http_Filter::Connection_loop : public Genode::Thread
     public:
         Connection_loop (Genode::Env &, int, Genode::String<32>, Terminal::Connection &, bool &,
                 Genode::Signal_context_capability);
+        ~Connection_loop();
 };
 
 class Http_Filter::Connection
@@ -47,6 +48,7 @@ class Http_Filter::Connection
     public:
 
         Connection (Genode::Env &, int, Genode::String<32>, Genode::Signal_context_capability);
+        ~Connection();
         void start();
         bool closed() const;
         void join();

@@ -2,6 +2,8 @@
 #include <connection.h>
 #include <unistd.h>
 
+#include <libc/component.h>
+
 Http_Filter::Connection::Connection(Genode::Env &env, int socket, Genode::String<32> label,
         Genode::Signal_context_capability close) :
     _env(env),
@@ -16,6 +18,16 @@ Http_Filter::Connection::Connection(Genode::Env &env, int socket, Genode::String
     _terminal.read_avail_sigh(_read_sigh);
 }
 
+Http_Filter::Connection::~Connection()
+{
+    Genode::log(__func__);
+}
+
+Http_Filter::Connection_loop::~Connection_loop()
+{
+    Genode::log(__func__);
+}
+
 void Http_Filter::Connection::handle_response()
 {
     char buffer[BUFSIZE];
@@ -26,14 +38,16 @@ void Http_Filter::Connection::handle_response()
         Genode::Signal_transmitter(_close_sigh).submit();
     }
 
-    while(size > 0){
-        ssize = write(_socket, buffer, size);
-        if(ssize < 0){
-            Genode::error("Failed to write: ", ssize);
-            return;
+    Libc::with_libc([&] () {
+        while(size > 0){
+            ssize = write(_socket, buffer, size);
+            if(ssize < 0){
+                Genode::error("Failed to write: ", ssize);
+                return;
+            }
+            size -= ssize;
         }
-        size -= ssize;
-    }
+    });
 }
 
 void Http_Filter::Connection::handle_close()
@@ -41,6 +55,7 @@ void Http_Filter::Connection::handle_close()
     _closed = true;
     _loop.cancel_blocking();
     _loop.join();
+    Genode::log("joined");
     Genode::Signal_transmitter(_close_signal).submit();
 }
 
@@ -73,15 +88,17 @@ void Http_Filter::Connection_loop::entry()
     char buffer[BUFSIZE];
     long size, tsize;
 
-    while (size = read(_socket, buffer, BUFSIZE), !_closed && size > 0){
-        while(size > 0){
-            tsize = _terminal.write(buffer, size);
-            size -= tsize;
-            if(tsize == 0){
-                Genode::Signal_transmitter(_csigh).submit();
-                break;
+    Libc::with_libc([&] () {
+        while (size = read(_socket, buffer, BUFSIZE), !_closed && size > 0){
+            while(size > 0){
+                tsize = _terminal.write(buffer, size);
+                size -= tsize;
+                if(tsize == 0){
+                    Genode::Signal_transmitter(_csigh).submit();
+                    break;
+                }
             }
         }
-    }
+    });
     Genode::Signal_transmitter(_csigh).submit();
 }
