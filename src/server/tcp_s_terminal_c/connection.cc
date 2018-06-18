@@ -16,7 +16,7 @@ Tcp::Connection::Connection(Genode::Env &env, int socket, char const *label) :
 void Tcp::Connection::entry()
 {
     char buffer[CONNECTION_BUFFER];
-    long received, sent;
+    long received, sent, written;
 
     while(!_closed){
         Genode::memset(buffer, 0, sizeof(buffer));
@@ -25,8 +25,11 @@ void Tcp::Connection::entry()
         LIBC(read, buffer, sizeof(buffer), &received);
         if(received > 0 && !_closed){
             while(sent < received){
-                sent += _terminal.write(&buffer[sent], received - sent);
-                LIBC(close);
+                written = _terminal.write(&buffer[sent], received - sent);
+                if(written == 0){
+                    LIBC(close);
+                }
+                sent += written;
             }
         }
     }
