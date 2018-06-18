@@ -16,12 +16,12 @@ Http_Filter::Component::Component(Genode::Env &env,
 
 Terminal::Session::Size Http_Filter::Component::size()
 {
-    return Terminal::Session::Size(0, 0);
+    return _terminal.size();
 }
 
 bool Http_Filter::Component::avail()
 {
-    return false;
+    return _terminal.avail();
 }
 
 /*
