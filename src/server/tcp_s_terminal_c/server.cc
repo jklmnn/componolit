@@ -12,6 +12,7 @@
 #include <netinet/in.h>
 
 Tcp::Server::Server(Genode::Env &env, short port) :
+    Genode::Thread(env, "tcp server", CONNECTION_COUNT * (CONNECTION_BUFFER + 4096) + 4096),
     _env(env),
     _port(port),
     _socket(-1)
@@ -19,7 +20,7 @@ Tcp::Server::Server(Genode::Env &env, short port) :
     Genode::log(__func__);
 }
 
-void Tcp::Server::start()
+void Tcp::Server::entry()
 {
     LIBC(setup);
     LIBC(accept);

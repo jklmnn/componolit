@@ -1,6 +1,7 @@
 
 #include <connection.h>
 
+#include <base/thread.h>
 #include <util/reconstructible.h>
 
 namespace Tcp
@@ -11,7 +12,7 @@ namespace Tcp
     };
 };
 
-class Tcp::Server
+class Tcp::Server : public Genode::Thread
 {
     private:
         Genode::Env &_env;
@@ -24,7 +25,7 @@ class Tcp::Server
         void lc_setup();
         void lc_accept();
 
+        void entry() override;
     public:
         Server(Genode::Env &, short);
-        void start();
 };

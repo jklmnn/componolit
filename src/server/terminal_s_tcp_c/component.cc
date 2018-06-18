@@ -32,6 +32,7 @@ Genode::size_t Terminal::Session_component::_write(Genode::size_t size)
         Genode::memcpy(_local_buffer, _io_buffer.local_addr<void>(), cpy);
         _unhandled += cpy;
     }
+    Genode::Signal_transmitter(_read_avail).submit();
     return cpy;
 }
 
