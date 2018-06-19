@@ -2,13 +2,16 @@
 #include <root/component.h>
 #include <terminal_session/terminal_session.h>
 #include <base/attached_ram_dataspace.h>
+#include <timer_session/connection.h>
+#include <base/signal.h>
 
 namespace Terminal
 {
     class Session_component;
     class Root_component;
     enum {
-        IO_BUFFER_SIZE = 4096
+        IO_BUFFER_SIZE = 4096,
+        POLLING_TIME = 100000
     };
 };
 
@@ -20,10 +23,17 @@ class Terminal::Session_component : public Genode::Rpc_object<Session, Session_c
         Genode::Signal_context_capability _read_avail;
         char _local_buffer[IO_BUFFER_SIZE];
         unsigned _unhandled;
+        Genode::String<16> _address;
+        int _port;
+        int _socket;
+
+        void lc_connect();
+        void lc_poll(int *);
 
     public:
 
-        Session_component(Genode::Ram_session &, Genode::Region_map &);
+        Session_component(Genode::Env &, Genode::Ram_session &, Genode::Region_map &, Genode::String<16>, int);
+        ~Session_component();
 
         Session::Size size() override;
         bool avail() override;
@@ -45,8 +55,11 @@ class Terminal::Root_component : public Genode::Root_component<Session_component
 {
     private:
 
+        Genode::Env &_env;
         Genode::Ram_session &_ram;
         Genode::Region_map &_rm;
+        Genode::String<16> _address;
+        int _port;
 
     protected:
 
@@ -54,9 +67,12 @@ class Terminal::Root_component : public Genode::Root_component<Session_component
 
     public:
 
-        Root_component(Genode::Entrypoint &,
+        Root_component(Genode::Env &,
+                Genode::Entrypoint &,
                 Genode::Allocator &,
                 Genode::Ram_session &,
-                Genode::Region_map &);
+                Genode::Region_map &,
+                Genode::String<16>,
+                int);
 
 };

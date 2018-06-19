@@ -1,6 +1,7 @@
 
 #include <libc/component.h>
 #include <base/heap.h>
+#include <base/attached_rom_dataspace.h>
 
 #include <component.h>
 
@@ -11,13 +12,15 @@ namespace Terminal
 
 struct Terminal::Main
 {
-    Genode::Sliced_heap _heap;
+    Genode::Env &_env;
+    Genode::Sliced_heap _heap {_env.ram(), _env.rm()};
+    Genode::Attached_rom_dataspace _config {_env, "config"};
 
-    Root_component _root;
+    Root_component _root {_env, _env.ep(), _heap, _env.ram(), _env.rm(),
+        _config.xml().attribute_value<Genode::String<16>>("server_ip", "0.0.0.0"),
+        static_cast<int>(_config.xml().attribute_value<long int>("server_port", 0))};
 
-    Main(Genode::Env &env) :
-        _heap(env.ram(), env.rm()),
-        _root(env.ep(), _heap, env.ram(), env.rm())
+    Main(Genode::Env &env) : _env(env)
     {
         env.parent().announce(env.ep().manage(_root));
         Genode::log("terminal_tcp");
