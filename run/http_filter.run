@@ -7,13 +7,16 @@ set build_components {
 	drivers/timer drivers/input drivers/nic
 	server/nic_bridge
 	app/lighttpd
-	test/lwip/http_clnt
+        test/lwip/http_clnt
+        test/tcp_echo_server
 	server/http_uplink
 	server/http_downlink
 	server/http_filter
 	server/log_terminal
 	server/nic_loopback
 	server/nic_dump
+        server/tcp_s_terminal_c
+        server/terminal_s_tcp_c
 }
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
@@ -99,6 +102,18 @@ mimetype.assign      = (
 		</route>
 	</start>
 
+        <start name="test-tcp_echo_server">
+            <resource name="RAM" quantum="8M"/>
+            <route>
+                <service name="Nic"><child name="nic_bridge"/></service>
+                <any-service><parent/><any-child/></any-service>
+            </route>
+            <config>
+                <libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"
+                    ip_addr="10.0.3.102" netmask="255.255.255.0" gateway="0.0.0.0"/>
+            </config>
+        </start>
+
 	<start name="nic_loopback">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Nic"/></provides>
@@ -109,7 +124,8 @@ mimetype.assign      = (
 		<provides><service name="Nic"/></provides>
 		<config>
 			<policy label_prefix="lighttpd" ip_addr="10.0.3.100"/>
-			<policy label_prefix="http_downlink" ip_addr="10.0.3.101"/>
+                        <policy label_prefix="http_downlink" ip_addr="10.0.3.101"/>
+                        <policy label_prefix="test-tcp_echo_server" ip_addr="10.0.3.102"/>
 		</config>
 		<route>
 			<service name="Nic"> <child name="nic_loopback"/> </service>
@@ -129,7 +145,7 @@ mimetype.assign      = (
 		</route>
 	</start>
 
-	<start name="http_downlink">
+	<start name="terminal_tcp">
 		<resource name="RAM" quantum="16M"/>
 		<provides>
 			<service name="Terminal"/>
@@ -157,12 +173,12 @@ mimetype.assign      = (
 			<service name="Terminal"/>
 		</provides>
 		<route>
-			<service name="Terminal"><child name="http_downlink"/></service>
+			<service name="Terminal"><child name="terminal_tcp"/></service>
 			<any-service><parent/><any-child/></any-service>
 		</route>
 	</start>
 
-	<start name="http_uplink">
+	<start name="tcp_terminal">
 		<resource name="RAM" quantum="12M"/>
 		<route>
 			<service name="Nic"><child name="nic_drv"/></service>
@@ -214,7 +230,8 @@ append boot_modules {
 	libc.lib.so
 	posix.lib.so
 	lwip.lib.so
-	test-http_clnt
+        test-http_clnt
+        test-tcp_echo_server
 	libm.lib.so
 	zlib.lib.so
 	lighttpd
@@ -224,6 +241,8 @@ append boot_modules {
 	log_terminal
 	website.tar
 	nic_dump
+        tcp_terminal
+        terminal_tcp
 }
 
 # Copy website
