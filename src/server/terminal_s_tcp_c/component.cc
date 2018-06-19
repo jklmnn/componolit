@@ -17,7 +17,7 @@ void lc_write(int fd, const void *buffer, Genode::size_t size, long *result)
 
 void lc_read(int fd, void *buffer, Genode::size_t size, long *result)
 {
-    *result = read(fd, buffer, size);
+    *result = recv(fd, buffer, size, MSG_DONTWAIT);
 }
 
 void lc_close(int sock)
@@ -25,15 +25,19 @@ void lc_close(int sock)
     close(sock);
 }
 
-Terminal::Session_component::Session_component(Genode::Env &, Genode::Ram_session &ram, Genode::Region_map &rm,
+Terminal::Session_component::Session_component(Genode::Env &env, Genode::Ram_session &ram, Genode::Region_map &rm,
         Genode::String<16> address, int port) :
     _io_buffer(ram, rm, IO_BUFFER_SIZE),
     _read_avail(Genode::Signal_context_capability()),
     _unhandled(0),
     _address(address),
     _port(port),
-    _socket(-1)
-{ }
+    _socket(-1),
+    _timer(env),
+    _poll_sigh(env.ep(), *this, &Terminal::Session_component::poll)
+{
+    _timer.sigh(_poll_sigh);
+}
 
 Terminal::Session::Size Terminal::Session_component::size()
 {
@@ -88,6 +92,7 @@ void Terminal::Session_component::connected_sigh(Genode::Signal_context_capabili
     if(_socket < 0){
         Genode::error("Failed to connect to ", _address, ":", _port);
     }else{
+        _timer.trigger_periodic(100000);
         Genode::Signal_transmitter(cap).submit();
     }
 }
@@ -125,6 +130,15 @@ void Terminal::Session_component::lc_connect()
 void Terminal::Session_component::lc_poll(int *status)
 {
     ioctl(_socket, FIONREAD, status);
+}
+
+void Terminal::Session_component::poll()
+{
+    int status;
+    LIBC(poll, &status);
+    if(status){
+        Genode::Signal_transmitter(_read_avail).submit();
+    }
 }
 
 Terminal::Root_component::Root_component(Genode::Env &env,

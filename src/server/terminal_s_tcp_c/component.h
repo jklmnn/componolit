@@ -26,9 +26,12 @@ class Terminal::Session_component : public Genode::Rpc_object<Session, Session_c
         Genode::String<16> _address;
         int _port;
         int _socket;
+        Timer::Connection _timer;
+        Genode::Signal_handler<Session_component> _poll_sigh;
 
         void lc_connect();
         void lc_poll(int *);
+        void poll();
 
     public:
 
