@@ -1,0 +1,79 @@
+set build_components {
+    core
+    init
+    drivers/timer drivers/nic
+    test/tcp_echo_server
+}
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+append_platform_drv_build_components
+
+build $build_components
+
+create_boot_directory
+
+append config {
+<config>
+    <parent-provides>
+        <service name="ROM"/>
+        <service name="IRQ"/>
+        <service name="IO_MEM"/>
+        <service name="IO_PORT"/>
+        <service name="PD"/>
+        <service name="RM"/>
+        <service name="CPU"/>
+        <service name="LOG"/>
+    </parent-provides>
+    <default-route>
+        <any-service> <parent/> <any-child/> </any-service>
+    </default-route>
+    <default caps="200"/>
+}
+
+append_platform_drv_config
+
+append config {
+    <start name="timer">
+        <resource name="RAM" quantum="1M"/>
+        <provides>
+            <service name="Timer"/>
+        </provides>
+    </start>
+
+    <start name="test-tcp_echo_server">
+        <resource name="RAM" quantum="8M"/>
+    </start>
+
+    <start name="nic_drv">
+        <binary name="} [nic_drv_binary] {"/>
+        <resource name="RAM" quantum="4M"/>
+        <provides><service name="Nic"/></provides>
+    </start>
+
+</config>
+}
+
+install_config $config
+
+append boot_modules {
+    core
+    ld.lib.so
+    libc.lib.so
+    lwip.lib.so
+    init
+    timer } [nic_drv_binary] {
+    test-tcp_echo_server
+}
+
+append_platform_drv_boot_modules
+
+build_boot_image $boot_modules
+
+
+append qemu_args "-nographic "
+append_if [have_spec x86]     qemu_args " -net nic,model=e1000 "
+append qemu_args " -net user -redir tcp:5555::21 "
+append qemu_args " -nographic -serial mon:stdio "
+append xen_args  { sdl="0" }
+
+run_genode_until forever
