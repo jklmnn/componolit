@@ -5,18 +5,16 @@
 set build_components {
 	core init
 	drivers/timer drivers/input drivers/nic
-	server/nic_bridge
 	app/lighttpd
-        test/lwip/http_clnt
-        test/tcp_echo_server
 	server/http_uplink
 	server/http_downlink
 	server/http_filter
 	server/log_terminal
 	server/nic_loopback
 	server/nic_dump
-        server/tcp_s_terminal_c
-        server/terminal_s_tcp_c
+	server/nic_router
+	server/tcp_s_terminal_c
+	server/terminal_s_tcp_c
 }
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
@@ -93,39 +91,31 @@ mimetype.assign      = (
 					<tar name="website.tar"/>
 				</dir>
 			</vfs>
-			<libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"
-				ip_addr="10.0.3.100" netmask="255.255.255.0" gateway="0.0.0.0"/>
+			<libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"/>
 		</config>
 		<route>
-			<service name="Nic"> <child name="nic_bridge"/> </service>
+			<service name="Nic"> <child name="hub"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
 
-        <start name="test-tcp_echo_server">
-            <resource name="RAM" quantum="8M"/>
-            <route>
-                <service name="Nic"><child name="nic_bridge"/></service>
-                <any-service><parent/><any-child/></any-service>
-            </route>
-            <config>
-                <libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"
-                    ip_addr="10.0.3.102" netmask="255.255.255.0" gateway="0.0.0.0"/>
-            </config>
-        </start>
-
-	<start name="nic_loopback">
-		<resource name="RAM" quantum="1M"/>
-		<provides><service name="Nic"/></provides>
-	</start>
-
-	<start name="nic_bridge">
+	<start name="hub">
+	   <binary name="nic_router"/>
 		<resource name="RAM" quantum="24M"/>
 		<provides><service name="Nic"/></provides>
-		<config>
-			<policy label_prefix="lighttpd" ip_addr="10.0.3.100"/>
-                        <policy label_prefix="http_downlink" ip_addr="10.0.3.101"/>
-                        <policy label_prefix="test-tcp_echo_server" ip_addr="10.0.3.102"/>
+		<config verbose="yes" verbose_packets="yes" verbose_domain_state="yes">
+			<policy label_prefix="lighttpd" domain="down"/>
+         <policy label_prefix="terminal_tcp" domain="up"/>
+
+         <domain name="down" interface="10.0.4.254/24">
+            <dhcp-server ip_first="10.0.4.1" ip_last="10.0.4.1" ip_lease_time_sec="3600"/>
+            <tcp dst="10.0.3.1/24"><permit-any domain="up"/></tcp>
+         </domain>
+
+         <domain name="up" interface="10.0.3.254/24">
+            <dhcp-server ip_first="10.0.3.1" ip_last="10.0.3.10" ip_lease_time_sec="3600"/>
+            <tcp dst="10.0.4.1/24"><permit-any domain="down"/></tcp>
+         </domain>
 		</config>
 		<route>
 			<service name="Nic"> <child name="nic_loopback"/> </service>
@@ -133,16 +123,9 @@ mimetype.assign      = (
 		</route>
 	</start>
 
-	<start name="nic_dump">
-		<resource name="RAM" quantum="8M"/>
-		<provides>
-			<service name="Nic"/>
-		</provides>
-		<config uplink="nic_bridge" downlink="http_downlink" />
-		<route>
-			<service name="Nic"><child name="nic_bridge"/></service>
-			<any-service><parent/><any-child/></any-service>
-		</route>
+	<start name="nic_loopback">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Nic"/></provides>
 	</start>
 
 	<start name="terminal_tcp">
@@ -151,10 +134,10 @@ mimetype.assign      = (
 			<service name="Terminal"/>
 		</provides>
 		<route>
-			<service name="Nic"><child name="nic_dump"/></service>
+			<service name="Nic"><child name="hub"/></service>
 			<any-service><parent/><any-child/></any-service>
 		</route>
-		<config server_ip="10.0.3.100" server_port="80">
+		<config server_ip="10.0.4.1" server_port="80">
 			<vfs>
 				<dir name="dev">
 					<log/>
@@ -162,11 +145,11 @@ mimetype.assign      = (
 					<inline name="rtc">2000-01-01 00:00</inline>
 				</dir>
 			</vfs>
-			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"
-				ip_addr="10.0.3.101" netmask="255.255.255.0" gateway="0.0.0.0"/>
+			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"/>
 		</config>
 	</start>
 
+<!--
 	<start name="http_filter">
 		<resource name="RAM" quantum="8M"/>
 		<provides>
@@ -177,12 +160,16 @@ mimetype.assign      = (
 			<any-service><parent/><any-child/></any-service>
 		</route>
 	</start>
+-->
 
 	<start name="tcp_terminal">
 		<resource name="RAM" quantum="12M"/>
 		<route>
 			<service name="Nic"><child name="nic_drv"/></service>
+<!--
 			<service name="Terminal"><child name="http_filter"/></service>
+-->
+			<service name="Terminal"><child name="terminal_tcp"/></service>
 			<any-service><parent/><any-child/></any-service>
 		</route>
 
@@ -223,15 +210,13 @@ install_config $config
 append boot_modules {
 	core init
 	timer } [nic_drv_binary] {
-	nic_bridge
+	nic_router
 	nic_loopback
 	ld.lib.so
 	ada.lib.so
 	libc.lib.so
 	posix.lib.so
 	lwip.lib.so
-        test-http_clnt
-        test-tcp_echo_server
 	libm.lib.so
 	zlib.lib.so
 	lighttpd
@@ -241,8 +226,8 @@ append boot_modules {
 	log_terminal
 	website.tar
 	nic_dump
-        tcp_terminal
-        terminal_tcp
+	tcp_terminal
+	terminal_tcp
 }
 
 # Copy website
