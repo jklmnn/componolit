@@ -351,7 +351,6 @@ append boot_modules {
         qemu-usb.lib.so
         stdcxx.lib.so
 	posix.lib.so
-	lwip.lib.so
 	lwip_legacy.lib.so
 	libm.lib.so
 	zlib.lib.so
