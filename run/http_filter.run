@@ -279,7 +279,6 @@ mimetype.assign      = (
 		</config>
 	</start>
 
-<!--
 	<start name="http_filter">
 		<resource name="RAM" quantum="8M"/>
 		<provides>
@@ -290,17 +289,13 @@ mimetype.assign      = (
 			<any-service><parent/><any-child/></any-service>
 		</route>
 	</start>
--->
 
 	<start name="tcp_terminal">
 		<resource name="RAM" quantum="12M"/>
 		<route>
 			<service name="Nic"><child name="nic_drv"/></service>
-<!--
 			<service name="Terminal"><child name="http_filter"/></service>
--->
-                    <!--<service name="LOG"><child name="vga_log_drv"/></service>-->
-			<service name="Terminal"><child name="terminal_tcp"/></service>
+                        <service name="LOG"><child name="vga_log_drv"/></service>
 			<any-service><parent/><any-child/></any-service>
 		</route>
 
@@ -357,8 +352,10 @@ append boot_modules {
         stdcxx.lib.so
 	posix.lib.so
 	lwip.lib.so
+	lwip_legacy.lib.so
 	libm.lib.so
 	zlib.lib.so
+	vfs.lib.so
 	lighttpd
 	http_uplink
 	http_downlink
