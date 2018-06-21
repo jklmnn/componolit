@@ -1,8 +1,4 @@
 
-INC_DIR += $(LSC_DIR)/ada/generic \
-	   $(LSC_DIR)/shared/little_endian \
-	   $(LSC_DIR)/ada/nullio
-
 include $(REP_DIR)/lib/import/import-libsparkcrypto.mk
 
 SRC_ADB = lsc-aes-print.adb \
@@ -29,7 +25,9 @@ SRC_ADB = lsc-aes-print.adb \
 	  lsc-ripemd160.adb \
 	  lsc-sha1.adb \
 	  lsc-sha256.adb \
+	  lsc-sha256-tables.ads \
 	  lsc-sha512.adb \
+	  lsc-sha512-tables.ads \
 	  lsc-byteorder32.adb \
 	  lsc-byteorder64.adb
 
