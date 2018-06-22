@@ -5,6 +5,7 @@
 set build_components {
 	core init
         drivers/timer drivers/input/dummy drivers/nic
+        drivers/rtc
         drivers/vga_log drivers/ahci drivers/input/spec/ps2
         drivers/framebuffer/vesa drivers/rtc/spec/x86
 	app/lighttpd
@@ -13,7 +14,6 @@ set build_components {
 	server/http_filter
 	server/log_terminal
 	server/nic_loopback
-	server/nic_dump
 	server/nic_router
 	server/tcp_s_terminal_c
         server/terminal_s_tcp_c
@@ -100,7 +100,6 @@ append config {
             </provides>
         </start>
 
-<!--
 	<start name="lighttpd">
 		<resource name="RAM" quantum="128M" />
 		<config>
@@ -342,6 +341,7 @@ append boot_modules {
         ps2_drv dummy_input_drv vga_log_drv
         fb_drv rtc_drv
         ahci_drv
+        rtc_drv
 	nic_router
 	nic_loopback
 	ld.lib.so
@@ -359,12 +359,9 @@ append boot_modules {
 	zlib.lib.so
 	vfs.lib.so
 	lighttpd
-	http_uplink
-	http_downlink
 	http_filter
 	log_terminal
 	website.tar
-	nic_dump
 	tcp_terminal
         terminal_tcp
         virtualbox5-nova
