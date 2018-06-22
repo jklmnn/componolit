@@ -4,17 +4,31 @@ with System;
 
 package Terminal.Session is
 
+   type Signal_Handler is
+   record
+      null;
+   end record
+      with Size => 1664;
+
    type Component is tagged limited record
-      Io_Buffer : aliased Base.Attached_Ram_Dataspace.Attached_Ram_Dataspace;
-      Terminal  : aliased Connection.Connection;
+      Io_Buffer     : aliased Base.Attached_Ram_Dataspace.Attached_Ram_Dataspace;
+      Terminal      : aliased Connection.Connection;
+      Authenticated : aliased Boolean;
+      Read_Sig      : aliased System.Address;
+      Read_Sigh     : aliased Signal_Handler;
+      Available     : aliased Boolean;
    end record
      with
        Import,
        Convention => CPP;
 
    for Component use record
-      Io_Buffer at 144 range 0 .. 319;
-      Terminal at 192 range 0 .. 2815;
+      Io_Buffer     at 144 range 0 .. 319;
+      Terminal      at 192 range 0 .. 2815;
+      Read_Sig      at 544 range 0 .. 63;
+      Read_Sigh     at 552 range 0 .. 1663;
+      Authenticated at 760 range 0 .. 7;
+      Available     at 761 range 0 .. 7;
    end record;
 
    function New_Component (
@@ -62,6 +76,14 @@ package Terminal.Session is
        Import,
        Convention => CPP,
        External_Name => "_ZN11Http_Filter9Component8cpp_readEmPv";
+
+   procedure Cpp_Transmit (
+                           This : access Component
+                          )
+     with
+       Import,
+       Convention => CPP,
+       External_Name => "_ZN11Http_Filter9Component9_transmitEv";
 
 private
 

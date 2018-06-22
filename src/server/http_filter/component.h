@@ -19,6 +19,13 @@ class Http_Filter::Component : public Genode::Rpc_object<Terminal::Session, Comp
 
         Genode::Attached_ram_dataspace _io_buffer;
         Terminal::Connection _terminal;
+        Genode::Signal_context_capability _read_sig;
+        Genode::Signal_handler <Component> _read_sigh;
+        unsigned char _authenticated;
+        bool _available;
+
+        void _handle_read();
+        void _transmit();
 
     public:
 
