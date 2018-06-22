@@ -61,7 +61,8 @@ package body Terminal.Session is
       end if;
 
       Debug_Int (1, "Read: Authenticated, sending message");
-      This.Authenticated := False;
+      Debug_Int (Long_Integer (Size), Buffer);
+      --  This.Available := True;
       return This.Cpp_Read (Size, This.Io_Buffer.Local_Address);
    end Read;
 
@@ -86,26 +87,24 @@ package body Terminal.Session is
 
    begin
       Debug_Ptr (This.Io_Buffer.Local_Address, "Write");
+      This.Authenticated := False;
 
       -- FIXME: Timestamp
-      if not This.Authenticated
+      Result := Authenticated (Buffer, 20000000);
+      if Result /= Auth_OK
       then
-         Result := Authenticated (Buffer, 20000000);
-         if Result /= Auth_OK
-         then
-            Debug_Int (0, "Write: not authenticated, sending signal");
-            This.Authenticated := False;
-            -- Send signal
-            This.Available := True;
-            This.Cpp_Transmit;
-            return Size;
-         else
-            This.Authenticated := True;
-         end if;
+         Debug_Int (0, "Write: not authenticated, sending signal");
+         -- Send signal
+         This.Available := True;
+         This.Cpp_Transmit;
+         return Size;
+      else
+         This.Authenticated := True;
       end if;
 
       Debug_Int (Auth_Result_Type'Pos (Result), "Write: authenticated, sending message");
-      --  Debug_Int (Long_Integer (Size), Buffer);
+      -- This.Available := False;
+      Debug_Int (Long_Integer (Size), Buffer);
       return This.Cpp_Write (Size, This.Io_Buffer.Local_Address);
    end Write;
 

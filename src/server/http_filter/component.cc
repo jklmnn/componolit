@@ -29,11 +29,14 @@ Terminal::Session::Size Http_Filter::Component::size()
 bool Http_Filter::Component::avail()
 {
     if (_available) {
+       Genode::warning(__func__, " local");
        return true;
     }
     if (_authenticated) {
+       Genode::warning(__func__, " downstream");
        return _terminal.avail();
     }
+    Genode::warning(__func__, " false");
     return false;
 }
 
@@ -83,7 +86,7 @@ void Http_Filter::Component::_transmit()
 
 void Http_Filter::Component::_handle_read()
 {
-    Genode::warning(__func__);
+    Genode::warning(__func__, ": authenticated=", _authenticated);
     if (_authenticated){
        _transmit();
     }
