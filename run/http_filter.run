@@ -4,7 +4,9 @@
 
 set build_components {
 	core init
-	drivers/timer drivers/input drivers/nic
+        drivers/timer drivers/input/dummy drivers/nic
+        drivers/vga_log drivers/ahci drivers/input/spec/ps2
+        drivers/framebuffer/vesa drivers/rtc/spec/x86
 	app/lighttpd
 	server/http_uplink
 	server/http_downlink
@@ -14,7 +16,11 @@ set build_components {
 	server/nic_dump
 	server/nic_router
 	server/tcp_s_terminal_c
-	server/terminal_s_tcp_c
+        server/terminal_s_tcp_c
+        server/rump_fs
+        server/part_blk
+        virtualbox5
+        server/fs_log
 }
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
@@ -43,7 +49,7 @@ append config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="200"/>
+	<default caps="500"/>
 }
 
 append_platform_drv_config
@@ -51,10 +57,50 @@ append_platform_drv_config
 append config {
 
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
-		<provides><service name="Timer"/></provides>
-	</start>
+	    <resource name="RAM" quantum="1M"/>
+	    <provides><service name="Timer"/></provides>
+        </start>
 
+        <start name="ps2_drv">
+            <resource name="RAM" quantum="4M"/>
+            <provides>
+                <service name="Input"/>
+            </provides>
+        </start>
+
+        <start name="dummy_input_drv">
+            <resource name="RAM" quantum="1M"/>
+            <provides>
+                <service name="Input"/>
+            </provides>
+        </start>
+
+        <start name="vga_log_drv">
+            <resource name="RAM" quantum="2M"/>
+            <provides>
+                <service name="LOG"/>
+            </provides>
+            <route>
+                <!--<service name="Input"><child name="ps2_drv"/></service>-->
+                <any-service> <parent/> <any-child/> </any-service>
+            </route>
+        </start>
+
+        <start name="rtc_drv">
+            <resource name="RAM" quantum="2M"/>
+            <provides>
+                <service name="Rtc"/>
+            </provides>
+        </start>
+
+        <start name="fb_drv">
+            <resource name="RAM" quantum="24M"/>
+            <provides>
+                <service name="Framebuffer"/>
+            </provides>
+        </start>
+
+<!--
 	<start name="lighttpd">
 		<resource name="RAM" quantum="128M" />
 		<config>
@@ -98,13 +144,95 @@ mimetype.assign      = (
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
+-->
+
+        <start name="ahci_drv">
+            <resource name="RAM" quantum="16M"/>
+            <provides>
+                <service name="Block"/>
+            </provides>
+            <config>
+                <!--<policy label_prefix="rump_fs" device="1" writeable="yes"/>-->
+                <policy label_prefix="part_blk" device="1" writeable="yes"/>
+            </config>
+            <route>
+                <service name="LOG"><child name="vga_log_drv"/></service>
+                <any-service> <parent/> <any-child/> </any-service>
+            </route>
+        </start>
+
+
+        <start name="part_blk">
+            <resource name="RAM" quantum="16M"/>
+            <provides>
+                <service name="Block"/>
+            </provides>
+            <config use_gpt="yes">
+                <policy label_prefix="rump_fs" partition="1" writeable="true"/>
+            </config>
+            <route>
+                <service name="LOG"><child name="vga_log_drv"/></service>
+                <service name="Block"><child name="ahci_drv"/></service>
+                <any-service> <parent/> <any-child/> </any-service>
+            </route>
+        </start>
+
+        <start name="rump_fs">
+            <resource name="RAM" quantum="16M"/>
+            <provides>
+                <service name="File_system"/>
+            </provides>
+            <config fs="ext2fs">
+                <policy label_prefix="virtualbox5-nova" root="/vm/" writeable="yes"/>
+                <policy label_prefix="fs_log" root="/log/" writeable="yes"/>
+            </config>
+            <route>
+                <service name="Block"><child name="part_blk"/></service>
+                <service name="LOG"><child name="vga_log_drv"/></service>
+                <any-service> <parent/> <any-child/> </any-service>
+            </route>
+        </start>
+
+        <start name="fs_log">
+            <resource name="RAM" quantum="8M"/>
+            <provides>
+                <service name="LOG"/>
+            </provides>
+            <config>
+                <policy label_prefix="virtualbox5-nova" truncate="yes"/>
+            </config>
+            <route>
+                <service name="LOG"><child name="vga_log_drv"/></service>
+                <any-service> <parent/> <any-child/> </any-service>
+            </route>
+        </start>
+
+        <start name="virtualbox5-nova" caps="1000">
+            <resource name="RAM" quantum="3072M"/>
+            <config vbox_file="debian/machine.vbox" vm_name="Debian">
+                <libc stdout="/dev/log" stdin="/dev/log" rtc="/dev/rtc"/>
+                <vfs>
+                    <dir name="dev"><log/><rtc/><terminal/></dir>
+                    <fs writeable="yes"/>
+                </vfs>
+            </config>
+            <route>
+                <service name="LOG"><child name="fs_log"/></service>
+                <service name="Input"><child name="ps2_drv"/></service>
+                <service name="Framebuffer"><child name="fb_drv"/></service>
+                <service name="Nic"><child name="hub"/></service>
+                <service name="File_system"><child name="rump_fs"/></service>
+                <service name="Terminal"><child name="log_terminal"/></service>
+                <any-service> <parent/> <any-child/> </any-service>
+            </route>
+        </start>
 
 	<start name="hub">
 	   <binary name="nic_router"/>
 		<resource name="RAM" quantum="24M"/>
 		<provides><service name="Nic"/></provides>
 		<config verbose="yes" verbose_packets="yes" verbose_domain_state="yes">
-			<policy label_prefix="lighttpd" domain="down"/>
+			<policy label_prefix="virtualbox5-nova" domain="down"/>
          <policy label_prefix="terminal_tcp" domain="up"/>
 
          <domain name="down" interface="10.0.4.254/24">
@@ -118,8 +246,9 @@ mimetype.assign      = (
          </domain>
 		</config>
 		<route>
-			<service name="Nic"> <child name="nic_loopback"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
+                    <service name="Nic"> <child name="nic_loopback"/> </service>
+                    <!--<service name="LOG"><child name="vga_log_drv"/></service>-->
+                    <any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
 
@@ -134,6 +263,7 @@ mimetype.assign      = (
 			<service name="Terminal"/>
 		</provides>
 		<route>
+                    <!--<service name="LOG"><child name="vga_log_drv"/></service>-->
 			<service name="Nic"><child name="hub"/></service>
 			<any-service><parent/><any-child/></any-service>
 		</route>
@@ -169,6 +299,7 @@ mimetype.assign      = (
 <!--
 			<service name="Terminal"><child name="http_filter"/></service>
 -->
+                    <!--<service name="LOG"><child name="vga_log_drv"/></service>-->
 			<service name="Terminal"><child name="terminal_tcp"/></service>
 			<any-service><parent/><any-child/></any-service>
 		</route>
@@ -209,12 +340,21 @@ install_config $config
 # generic modules
 append boot_modules {
 	core init
-	timer } [nic_drv_binary] {
+        timer } [nic_drv_binary] {
+        ps2_drv dummy_input_drv vga_log_drv
+        fb_drv rtc_drv
+        ahci_drv
 	nic_router
 	nic_loopback
 	ld.lib.so
 	ada.lib.so
-	libc.lib.so
+        libc.lib.so
+        libc_pipe.lib.so
+        libc_terminal.lib.so
+        libiconv.lib.so
+        pthread.lib.so
+        qemu-usb.lib.so
+        stdcxx.lib.so
 	posix.lib.so
 	lwip.lib.so
 	libm.lib.so
@@ -227,7 +367,11 @@ append boot_modules {
 	website.tar
 	nic_dump
 	tcp_terminal
-	terminal_tcp
+        terminal_tcp
+        virtualbox5-nova
+        rump_fs rump.lib.so rump_fs.lib.so
+        part_blk
+        fs_log
 }
 
 # Copy website
@@ -244,7 +388,8 @@ build_boot_image $boot_modules
 append_if [have_spec x86]     qemu_args " -net nic,model=e1000 "
 append_if [have_spec lan9118] qemu_args " -net nic,model=lan9118 "
 
-append qemu_args " -net user -redir tcp:5555::80 "
-append qemu_args " -nographic -serial mon:stdio "
+append qemu_args " -net user -redir tcp:5555::80 -m 4096"
+append qemu_args " -serial mon:stdio -cpu phenom"
+append qemu_args " -device ahci,id=ahci -drive id=disk,file=bin/genode.img,format=raw,if=none -device ide-hd,drive=disk,bus=ahci.1 "
 
 run_genode_until forever
