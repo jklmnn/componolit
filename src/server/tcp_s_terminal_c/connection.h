@@ -9,7 +9,7 @@ namespace Tcp
 {
     class Connection;
     enum {
-        CONNECTION_BUFFER = 1024
+        CONNECTION_BUFFER = 4096
     };
 };
 

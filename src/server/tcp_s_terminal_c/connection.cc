@@ -50,11 +50,11 @@ void Tcp::Connection::handle_response()
     }
 
     while(!_closed && _terminal.avail()){
-        Genode::warning(__func__, ": Sending");
         Genode::memset(buffer, 0, sizeof(buffer));
         sent = 0;
         received = _terminal.read(buffer, sizeof(buffer));
         while(sent < received){
+            Genode::warning(__func__, ": Sending buffer at ", sent, " (received ", received, ")");
             LIBC(write, &buffer[sent], received - sent, &sent);
         }
     }
