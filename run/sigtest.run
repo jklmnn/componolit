@@ -1,0 +1,45 @@
+
+
+build "core init drivers/timer test/sigtest server/http_uplink"
+
+create_boot_directory
+
+set config {
+    <config>
+        <parent-provides>
+            <service name="ROM"/>
+            <service name="IRQ"/>
+            <service name="IO_MEM"/>
+            <service name="IO_PORT"/>
+            <service name="PD"/>
+            <service name="RM"/>
+            <service name="CPU"/>
+            <service name="LOG"/>
+        </parent-provides>
+        <default-route>
+            <any-service><parent/><any-child/></any-service>
+        </default-route>
+        <default caps="100"/>
+
+        <start name="timer">
+            <resource name="RAM" quantum="1M"/>
+            <provides>
+                <service name="Timer"/>
+            </provides>
+        </start>
+
+        <start name="sigtest">
+            <resource name="RAM" quantum="4M"/>
+        </start>
+
+        <start name="http_uplink">
+            <resource name="RAM" quantum="16M"/>
+        </start>
+    </config>
+}
+
+install_config $config
+
+build_boot_image "core init ld.lib.so libc.lib.so lwip.lib.so timer sigtest http_uplink"
+
+run_genode_until forever

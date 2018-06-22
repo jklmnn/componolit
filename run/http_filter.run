@@ -231,8 +231,11 @@ mimetype.assign      = (
 	   <binary name="nic_router"/>
 		<resource name="RAM" quantum="24M"/>
 		<provides><service name="Nic"/></provides>
-		<config verbose="yes" verbose_packets="yes" verbose_domain_state="yes">
+		<config verbose="no" verbose_packets="no" verbose_domain_state="no">
+			<policy label_prefix="lighttpd" domain="down"/>
+		<!--
 			<policy label_prefix="virtualbox5-nova" domain="down"/>
+                -->
          <policy label_prefix="terminal_tcp" domain="up"/>
 
          <domain name="down" interface="10.0.4.254/24">
