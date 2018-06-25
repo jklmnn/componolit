@@ -4,23 +4,33 @@
 
 set build_components {
 	core init
-        drivers/timer drivers/input/dummy drivers/nic
-        drivers/rtc
-        drivers/vga_log drivers/ahci drivers/input/spec/ps2
-        drivers/framebuffer/vesa drivers/rtc/spec/x86
-	app/lighttpd
-	server/http_uplink
-	server/http_downlink
+        drivers/timer
+        drivers/nic
+        drivers/vga_log
+        drivers/input/spec/ps2
 	server/http_filter
 	server/log_terminal
 	server/nic_loopback
 	server/nic_router
 	server/tcp_s_terminal_c
         server/terminal_s_tcp_c
+}
+
+if { $use_virtualbox == 1 } {
+    append build_components {
+        drivers/framebuffer/vesa
+        drivers/rtc
+        drivers/input/dummy
+        virtualbox5
         server/rump_fs
         server/part_blk
-        virtualbox5
         server/fs_log
+        drivers/ahci
+    }
+} else {
+    append build_components {
+	app/lighttpd
+    }
 }
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
@@ -34,7 +44,7 @@ create_boot_directory
 # Generate config
 #
 
-append config {
+set config {
 <config>
 	<parent-provides>
 		<service name="ROM"/>
@@ -67,29 +77,13 @@ append config {
                 <service name="Input"/>
             </provides>
         </start>
-
+}
+if { $use_virtualbox == 1 } {
+    append config {
         <start name="dummy_input_drv">
             <resource name="RAM" quantum="1M"/>
             <provides>
                 <service name="Input"/>
-            </provides>
-        </start>
-
-        <start name="vga_log_drv">
-            <resource name="RAM" quantum="2M"/>
-            <provides>
-                <service name="LOG"/>
-            </provides>
-            <route>
-                <!--<service name="Input"><child name="ps2_drv"/></service>-->
-                <any-service> <parent/> <any-child/> </any-service>
-            </route>
-        </start>
-
-        <start name="rtc_drv">
-            <resource name="RAM" quantum="2M"/>
-            <provides>
-                <service name="Rtc"/>
             </provides>
         </start>
 
@@ -100,6 +94,39 @@ append config {
             </provides>
         </start>
 
+        <start name="rtc_drv">
+            <resource name="RAM" quantum="2M"/>
+            <provides>
+                <service name="Rtc"/>
+            </provides>
+        </start>
+    }
+}
+append config {
+        <start name="vga_log_drv">
+            <resource name="RAM" quantum="2M"/>
+            <provides>
+                <service name="LOG"/>
+            </provides>
+            <route>
+}
+if { $use_virtualbox == 0 } {
+    append config {
+                <service name="Input"><child name="ps2_drv"/></service>
+    }
+} else {
+    append config {
+                <service name="Input"><child name="dummy_input_drv"/></service>
+    }
+}
+append config {
+                <any-service> <parent/> <any-child/> </any-service>
+            </route>
+        </start>
+}
+
+if { $use_virtualbox == 0 } {
+    append config {
 	<start name="lighttpd">
 		<resource name="RAM" quantum="128M" />
 		<config>
@@ -139,12 +166,16 @@ mimetype.assign      = (
 			<libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"/>
 		</config>
 		<route>
+                        <service name="LOG"><child name="vga_log_drv"/></service>
 			<service name="Nic"> <child name="hub"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
--->
+    }
+}
 
+if { $use_virtualbox == 1 } {
+    append config {
         <start name="ahci_drv">
             <resource name="RAM" quantum="16M"/>
             <provides>
@@ -225,16 +256,26 @@ mimetype.assign      = (
                 <any-service> <parent/> <any-child/> </any-service>
             </route>
         </start>
+    }
+}
 
+append config {
 	<start name="hub">
 	   <binary name="nic_router"/>
 		<resource name="RAM" quantum="24M"/>
 		<provides><service name="Nic"/></provides>
 		<config verbose="no" verbose_packets="no" verbose_domain_state="no">
-			<policy label_prefix="lighttpd" domain="down"/>
-		<!--
+}
+if { $use_virtualbox == 1 } {
+    append config {
 			<policy label_prefix="virtualbox5-nova" domain="down"/>
-                -->
+    }
+} else {
+    append config {
+			<policy label_prefix="lighttpd" domain="down"/>
+    }
+}
+append config {
          <policy label_prefix="terminal_tcp" domain="up"/>
 
          <domain name="down" interface="10.0.4.254/24">
@@ -249,7 +290,7 @@ mimetype.assign      = (
 		</config>
 		<route>
                     <service name="Nic"> <child name="nic_loopback"/> </service>
-                    <!--<service name="LOG"><child name="vga_log_drv"/></service>-->
+                    <service name="LOG"><child name="vga_log_drv"/></service>
                     <any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
@@ -264,11 +305,11 @@ mimetype.assign      = (
 		<provides>
 			<service name="Terminal"/>
 		</provides>
-		<route>
-                    <!--<service name="LOG"><child name="vga_log_drv"/></service>-->
-			<service name="Nic"><child name="hub"/></service>
-			<any-service><parent/><any-child/></any-service>
-		</route>
+                <route>
+                    <service name="LOG"><child name="vga_log_drv"/></service>
+                    <service name="Nic"><child name="hub"/></service>
+                    <any-service><parent/><any-child/></any-service>
+                </route>
 		<config server_ip="10.0.4.1" server_port="80">
 			<vfs>
 				<dir name="dev">
@@ -338,36 +379,48 @@ install_config $config
 append boot_modules {
 	core init
         timer } [nic_drv_binary] {
-        ps2_drv dummy_input_drv vga_log_drv
-        fb_drv rtc_drv
-        ahci_drv
-        rtc_drv
+        ps2_drv
+        vga_log_drv
 	nic_router
 	nic_loopback
 	ld.lib.so
 	ada.lib.so
         libc.lib.so
+	lwip_legacy.lib.so
+	libm.lib.so
+	http_filter
+	log_terminal
+	tcp_terminal
+        terminal_tcp
+	vfs.lib.so
+}
+
+if { $use_virtualbox == 1 } {
+    append boot_modules {
+        rtc_drv
+        dummy_input_drv
+        fb_drv
+        ahci_drv
+        virtualbox5-nova
+        rump_fs
+        rump.lib.so
+        rump_fs.lib.so
+        part_blk
+        fs_log
         libc_pipe.lib.so
         libc_terminal.lib.so
         libiconv.lib.so
         pthread.lib.so
         qemu-usb.lib.so
         stdcxx.lib.so
-	posix.lib.so
-	lwip_legacy.lib.so
-	libm.lib.so
-	zlib.lib.so
-	vfs.lib.so
+    }
+} else {
+    append boot_modules {
 	lighttpd
-	http_filter
-	log_terminal
 	website.tar
-	tcp_terminal
-        terminal_tcp
-        virtualbox5-nova
-        rump_fs rump.lib.so rump_fs.lib.so
-        part_blk
-        fs_log
+	posix.lib.so
+	zlib.lib.so
+    }
 }
 
 # Copy website
