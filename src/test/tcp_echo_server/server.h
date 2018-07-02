@@ -10,6 +10,7 @@ namespace Tcp
     enum {
         CONNECTION_COUNT = 3
     };
+    class Libc_Error : public Genode::Exception {};
 };
 
 class Tcp::Server : public Genode::Thread

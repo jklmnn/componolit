@@ -59,14 +59,19 @@ void Tcp::Server::lc_setup()
 
     if(_socket < 0){
         Genode::error("Failed to open socket: ", _socket);
+        throw Tcp::Libc_Error();
     }
 
     result = bind(_socket, (struct sockaddr *)&serv, sizeof(serv));
     if(result < 0){
         Genode::error("Failed to bind: ", result);
+        throw Tcp::Libc_Error();
     }
 
-    listen(_socket, CONNECTION_COUNT);
+    if(listen(_socket, CONNECTION_COUNT) < 0){
+        Genode::error("Listen failed");
+        throw Tcp::Libc_Error();
+    }
 }
 
 void Tcp::Server::lc_accept()
@@ -96,6 +101,7 @@ void Tcp::Server::lc_accept()
             }
         }else{
             Genode::error("accept failed ", connection);
+            throw Tcp::Libc_Error();
         }
     }
 }
